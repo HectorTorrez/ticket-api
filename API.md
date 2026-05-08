@@ -126,7 +126,7 @@ All under `POST /api/v1/auth`. These are **public** and have **stricter rate lim
 
 **401** if refresh token invalid or expired.
 
-### `POST/api/v1/auth/logout`
+### `POST /api/v1/auth/logout`
 
 **Body**
 
@@ -314,6 +314,37 @@ Only if no order lines reference this type.
 
 **Auth:** Bearer **CUSTOMER**.
 
+### `GET /api/v1/me/orders`
+
+Paginated list of the signed-in customer’s orders (newest first).
+
+**Query**
+
+| Param   | Type   | Default | Description |
+| ------- | ------ | ------- | ----------- |
+| `page`  | number | 1       | 1–∞         |
+| `limit` | number | 20      | 1–100       |
+| `status` | string | —      | optional `OrderStatus` filter |
+
+**Response**
+
+```json
+{
+  "items": [ /* Order + lines (ticketType: tier, name, price only) */ ],
+  "total": 10,
+  "page": 1,
+  "limit": 20
+}
+```
+
+### `GET /api/v1/me/orders/:id`
+
+Single order **if it belongs to the current user**. `:id` = order UUID.
+
+**Response** — `Order` with `lines` including **full** `ticketType` rows (same shape as after **mock-pay** success).
+
+**404** if the order does not exist or is not yours.
+
 ### `POST /api/v1/orders`
 
 Reserve inventory and create a **PENDING** order.
@@ -403,6 +434,63 @@ Cancel **PENDING** order (before expiry); restores inventory.
 ```
 
 **409** if not pending. **410** if reservation expired.
+
+---
+
+## Orders (admin)
+
+**Auth:** Bearer **ADMIN**.
+
+### `GET /api/v1/admin/orders`
+
+Paginated list of all orders (newest first).
+
+**Query**
+
+| Param   | Type   | Default | Description |
+| ------- | ------ | ------- | ----------- |
+| `page`  | number | 1       | 1–∞         |
+| `limit` | number | 20      | 1–100       |
+| `status` | string | —      | optional `OrderStatus` filter |
+| `userId` | string | —      | optional UUID — only this customer’s orders |
+
+**Response**
+
+```json
+{
+  "items": [
+    {
+      "id": "...",
+      "userId": "...",
+      "status": "PAID",
+      "currency": "USD",
+      "totalAmount": "99.00",
+      "expiresAt": "...",
+      "paidAt": "...",
+      "paymentReference": "...",
+      "createdAt": "...",
+      "updatedAt": "...",
+      "user": {
+        "id": "...",
+        "email": "buyer@example.com",
+        "role": "CUSTOMER"
+      },
+      "lines": [
+        {
+          "id": "...",
+          "ticketTypeId": "...",
+          "quantity": 1,
+          "unitPrice": "99.00",
+          "ticketType": { /* full TicketType */ }
+        }
+      ]
+    }
+  ],
+  "total": 100,
+  "page": 1,
+  "limit": 20
+}
+```
 
 ---
 

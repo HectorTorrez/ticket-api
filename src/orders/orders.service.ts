@@ -12,8 +12,11 @@ import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { InventoryGateway } from '../websocket/inventory.gateway';
+import { paginationSkipTake } from '../common/dto/pagination-query.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { MockPayDto, MockPayOutcome } from './dto/mock-pay.dto';
+import { QueryAdminOrdersDto } from './dto/query-admin-orders.dto';
+import { QueryMyOrdersDto } from './dto/query-my-orders.dto';
 import {
   loadOrderInventorySnapshotTx,
   restoreReservedInventory,
@@ -35,6 +38,70 @@ export class OrdersService {
     private readonly ticketsService: TicketsService,
     private readonly inventoryGateway: InventoryGateway,
   ) {}
+
+  listMine(userId: string, query: QueryMyOrdersDto) {
+    const { skip, take } = paginationSkipTake(query.page, query.limit);
+    const where = {
+      userId,
+      ...(query.status ? { status: query.status } : {}),
+    };
+
+    return Promise.all([
+      this.prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: {
+          lines: {
+            include: { ticketType: { select: { tier: true, name: true, price: true } } },
+          },
+        },
+      }),
+      this.prisma.order.count({ where }),
+    ]).then(([items, total]) => ({
+      items,
+      total,
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+    }));
+  }
+
+  async findMine(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { lines: { include: { ticketType: true } } },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
+  }
+
+  listForAdmin(query: QueryAdminOrdersDto) {
+    const { skip, take } = paginationSkipTake(query.page, query.limit);
+    const where = {
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.userId ? { userId: query.userId } : {}),
+    };
+
+    return Promise.all([
+      this.prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: {
+          user: { select: { id: true, email: true, role: true } },
+          lines: { include: { ticketType: true } },
+        },
+      }),
+      this.prisma.order.count({ where }),
+    ]).then(([items, total]) => ({
+      items,
+      total,
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+    }));
+  }
 
   async create(userId: string, dto: CreateOrderDto) {
     const ttlMinutes =
