@@ -9,8 +9,11 @@ import {
 } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
-export class QueryPublishedEventsDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ default: true, description: 'Omit or true = published only; false = include drafts (still excludes soft-deleted).' })
+export class QueryAdminEventsDto extends PaginationQueryDto {
+  @ApiPropertyOptional({
+    description:
+      'Omit = returns drafts and published. `true` / `false` filter by `published` (query strings use true/false).',
+  })
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined || value === null || value === '') return undefined;
@@ -19,7 +22,7 @@ export class QueryPublishedEventsDto extends PaginationQueryDto {
     return value;
   })
   @IsBoolean()
-  publishedOnly?: boolean = true;
+  published?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

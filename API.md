@@ -1,7 +1,8 @@
 # Ticket API — Frontend reference
 
 Base path for HTTP: **`/api/v1`** (see `main.ts`).  
-Interactive docs: **`GET /docs`** (Swagger UI; not under `/api/v1`).
+Interactive docs: **`GET /docs`** (Swagger UI; not under `/api/v1`).  
+**Routes by role:** after [Authentication](#authentication), see [Endpoint index by audience](#endpoint-index-by-audience) (public vs **user / `CUSTOMER`** vs **admin / `ADMIN`**).
 
 ---
 
@@ -29,6 +30,70 @@ Many routes apply **`RolesGuard`**: the handler declares required role(s). If yo
 ### Public routes
 
 Routes marked **Public** skip JWT (see `@Public()`). Everything else requires a valid access token unless noted.
+
+---
+
+## Endpoint index by audience
+
+All HTTP paths below assume the global prefix **`/api/v1`**. Interactive OpenAPI UI: **`GET /docs`** (no prefix).
+
+### Public (no JWT)
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `POST` | `/auth/register` | Creates **`CUSTOMER`** account |
+| `POST` | `/auth/login` | |
+| `POST` | `/auth/refresh` | |
+| `POST` | `/auth/logout` | |
+| `GET` | `/health` | |
+| `GET` | `/health/ready` | DB connectivity |
+| `GET` | `/events` | Published catalog (see `publishedOnly` query) |
+| `GET` | `/events/:slugOrId` | Published event only |
+| `GET` | `/tickets/:publicCode` | Minimal ticket payload |
+| `GET` | `/tickets/:publicCode/qr` | PNG QR (`image/png`) |
+
+### User / customer (`CUSTOMER`)
+
+Send **`Authorization: Bearer <accessToken>`**. **`403`** if the token’s role is not `CUSTOMER`.
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/me/orders` | Paginated; optional `status` filter |
+| `GET` | `/me/orders/:id` | Order must belong to caller |
+| `POST` | `/orders` | Create **PENDING** reservation |
+| `POST` | `/orders/:id/mock-pay` | MVP payment simulation |
+| `POST` | `/orders/:id/cancel` | Cancel **PENDING** reservation |
+| `GET` | `/me/tickets` | Issued tickets for caller |
+
+There are **no** `CUSTOMER`-only event URLs (`/me/events`, etc.). Use the **Public** catalog routes **`GET /events`** and **`GET /events/:slugOrId`** — see [Events](#events).
+
+### Admin (`ADMIN`)
+
+Send **`Authorization: Bearer <accessToken>`**. **`403`** if the token’s role is not `ADMIN`.
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `POST` | `/events` | Create draft event |
+| `PATCH` | `/events/:id` | `:id` = UUID |
+| `DELETE` | `/events/:id` | Soft-delete |
+| `POST` | `/events/:id/publish` | |
+| `POST` | `/events/:id/unpublish` | |
+| `POST` | `/events/:id/banner` | `multipart/form-data`, field `file` |
+| `GET` | `/admin/events` | List drafts + published (optional `published`, `from`, `to`, `q`) |
+| `POST` | `/events/:eventId/ticket-types` | Create ticket type |
+| `PATCH` | `/ticket-types/:id` | Update ticket type |
+| `DELETE` | `/ticket-types/:id` | Only if unused |
+| `GET` | `/admin/orders` | All orders; optional `status`, `userId` |
+| `POST` | `/qr/validate` | Gate: scan `publicCode` |
+| `GET` | `/dashboard/summary` | Aggregates |
+
+### WebSocket (any authenticated role)
+
+| Namespace | Auth |
+| --------- | ---- |
+| Socket.IO **`/inventory`** | Valid access JWT (`auth.token` or `Authorization` header on handshake) |
+
+Any role present in the JWT can connect; joining `event:<eventId>` is not role-restricted server-side. Details below under **WebSocket — live inventory**.
 
 ---
 
@@ -155,11 +220,35 @@ All under `POST /api/v1/auth`. These are **public** and have **stricter rate lim
 
 ---
 
-## Events (public catalog)
+## Events
 
-**Public.**
+Shopping and browsing use **`/api/v1/events`** without JWT. This API does **not** expose a separate customer-only path such as `GET /me/events`; **`CUSTOMER`** users call the same **public** list/detail endpoints below. Mutating routes require **`ADMIN`**.
 
-### `GET /api/v1/events`
+### Events — endpoints by audience
+
+| Audience | Auth | Method | Path |
+| -------- | ---- | ------ | ---- |
+| Public / user (`CUSTOMER`) | *(none)* | `GET` | `/events` |
+| Public / user (`CUSTOMER`) | *(none)* | `GET` | `/events/:slugOrId` |
+| Admin (`ADMIN`) | Bearer **`ADMIN`** | `POST` | `/events` |
+| Admin (`ADMIN`) | Bearer **`ADMIN`** | `PATCH` | `/events/:id` |
+| Admin (`ADMIN`) | Bearer **`ADMIN`** | `DELETE` | `/events/:id` |
+| Admin (`ADMIN`) | Bearer **`ADMIN`** | `POST` | `/events/:id/publish` |
+| Admin (`ADMIN`) | Bearer **`ADMIN`** | `POST` | `/events/:id/unpublish` |
+| Admin (`ADMIN`) | Bearer **`ADMIN`** | `POST` | `/events/:id/banner` |
+| Admin (`ADMIN`) | Bearer **`ADMIN`** | `GET` | `/admin/events` | Paginated list — **drafts + published** (see below) |
+
+Paths are under **`/api/v1`**. `:slugOrId` accepts **slug** or **UUID**. Admin `:id` must be **UUID**.
+
+For the **admin panel**, use **`GET /admin/events`** (authenticated) to list draft and published events. The public **`GET /events`** catalog is for storefronts and defaults to published-only.
+
+---
+
+### Public catalog (anonymous + shoppers)
+
+**Public.** Sending `Authorization` does not change behavior for these handlers.
+
+#### `GET /api/v1/events`
 
 List events (published by default).
 
@@ -191,23 +280,38 @@ Each **item** is an `Event` row plus `ticketTypes` **subset**:
 
 Other event fields: `id`, `organizerId`, `title`, `slug`, `description`, `startsAt`, `endsAt`, `venue`, `published`, `bannerKey`, `bannerUrl`, `createdAt`, `updatedAt`, `deletedAt` (usually `null` in lists).
 
-### `GET /api/v1/events/:slugOrId`
+#### `GET /api/v1/events/:slugOrId`
 
-Single published event. `:slugOrId` is either **slug** or **UUID**.
+Single **published** event. `:slugOrId` is either **slug** or **UUID**.
 
 **Response** — full `Event` with **`ticketTypes: TicketType[]`** (all columns for each type, including `quantityTotal`, `quantityRemaining`, `eventId`, etc.).
 
-**404** if not found or not published.
+**404** if not found, **not published**, or soft-deleted.
 
 ---
 
-## Events (admin)
+### Admin management (`ADMIN`)
 
-**Auth:** Bearer **ADMIN**.
+**Auth:** Bearer **`ADMIN`** on every route below.
 
-All paths: `/api/v1/events/...`
+#### `GET /api/v1/admin/events`
 
-### `POST /api/v1/events`
+Paginated list of **non-deleted** events (**drafts and published** by default — same response shape as public **`GET /events`** lists).
+
+**Query**
+
+| Param       | Type    | Default | Description |
+| ----------- | ------- | ------- | ----------- |
+| `page`      | number  | 1       | 1–∞         |
+| `limit`     | number  | 20      | 1–100       |
+| `published` | boolean | *(omit)* | Omit = both; `true` = published only; `false` = drafts only (strings **`true`** / **`false`** accepted) |
+| `from`      | string  | —       | ISO date — `startsAt >= from` |
+| `to`        | string  | —       | ISO date — `startsAt <= to` |
+| `q`         | string  | —       | max 120 chars, title/slug search |
+
+**Response** — `{ items, total, page, limit }` like **`GET /api/v1/events`**.
+
+#### `POST /api/v1/events`
 
 Create draft event (`published` defaults **false** in DB).
 
@@ -226,7 +330,7 @@ Create draft event (`published` defaults **false** in DB).
 
 **409** if slug cannot be made unique after retries.
 
-### `PATCH /api/v1/events/:id`
+#### `PATCH /api/v1/events/:id`
 
 `:id` must be UUID.
 
@@ -236,7 +340,7 @@ Create draft event (`published` defaults **false** in DB).
 
 **404** / **409** (slug conflict).
 
-### `DELETE /api/v1/events/:id`
+#### `DELETE /api/v1/events/:id`
 
 Soft-delete: sets `deletedAt`, `published: false`.
 
@@ -246,15 +350,15 @@ Soft-delete: sets `deletedAt`, `published: false`.
 { "deleted": true }
 ```
 
-### `POST /api/v1/events/:id/publish`
+#### `POST /api/v1/events/:id/publish`
 
 **Response** — updated `Event` with `published: true`.
 
-### `POST /api/v1/events/:id/unpublish`
+#### `POST /api/v1/events/:id/unpublish`
 
 **Response** — updated `Event` with `published: false`.
 
-### `POST /api/v1/events/:id/banner`
+#### `POST /api/v1/events/:id/banner`
 
 **Content-Type:** `multipart/form-data`  
 **Field name:** `file` (single file)
@@ -310,9 +414,9 @@ Only if no order lines reference this type.
 
 ---
 
-## Orders (customer)
+## Orders (user / CUSTOMER)
 
-**Auth:** Bearer **CUSTOMER**.
+**Auth:** Bearer **`CUSTOMER`** (same “user” routes as in [Endpoint index](#endpoint-index-by-audience)).
 
 ### `GET /api/v1/me/orders`
 
@@ -496,9 +600,11 @@ Paginated list of all orders (newest first).
 
 ## Tickets
 
-### `GET /api/v1/me/tickets`
+### User (`CUSTOMER`)
 
-**Auth:** Bearer **CUSTOMER**.
+#### `GET /api/v1/me/tickets`
+
+**Auth:** Bearer **`CUSTOMER`**.
 
 **Response** — array of tickets:
 
@@ -529,7 +635,9 @@ Paginated list of all orders (newest first).
 ]
 ```
 
-### `GET /api/v1/tickets/:publicCode`
+### Public ticket URLs
+
+#### `GET /api/v1/tickets/:publicCode`
 
 **Public.** Minimal payload for wallet / share links.
 
@@ -553,7 +661,7 @@ Paginated list of all orders (newest first).
 
 **404** if code unknown.
 
-### `GET /api/v1/tickets/:publicCode/qr`
+#### `GET /api/v1/tickets/:publicCode/qr`
 
 **Public.** Returns **PNG** image bytes (`Content-Type: image/png`). QR encodes the **plain `publicCode`** string (what scanners should submit to validate).
 

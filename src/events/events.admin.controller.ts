@@ -34,45 +34,48 @@ import { UpdateEventDto } from './dto/update-event.dto';
 @ApiBearerAuth()
 @Roles(UserRole.ADMIN)
 @UseGuards(RolesGuard)
-@Controller('events')
+@Controller()
 export class EventsAdminController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly s3Service: S3Service,
   ) {}
 
-  @Post()
+  @Post('events')
   @ApiOperation({ summary: 'Create event (draft)' })
-  create(@CurrentUser() user: Express.UserPayload, @Body() dto: CreateEventDto) {
+  create(
+    @CurrentUser() user: Express.UserPayload,
+    @Body() dto: CreateEventDto,
+  ) {
     return this.eventsService.create(user.userId, dto);
   }
 
-  @Patch(':id')
+  @Patch('events/:id')
   @ApiOperation({ summary: 'Update event' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateEventDto) {
     return this.eventsService.update(id, dto);
   }
 
-  @Delete(':id')
+  @Delete('events/:id')
   @ApiOperation({ summary: 'Soft-delete event' })
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.eventsService.softDelete(id);
     return { deleted: true };
   }
 
-  @Post(':id/publish')
+  @Post('events/:id/publish')
   @ApiOperation({ summary: 'Publish event' })
   publish(@Param('id', ParseUUIDPipe) id: string) {
     return this.eventsService.publish(id, true);
   }
 
-  @Post(':id/unpublish')
+  @Post('events/:id/unpublish')
   @ApiOperation({ summary: 'Unpublish event' })
   unpublish(@Param('id', ParseUUIDPipe) id: string) {
     return this.eventsService.publish(id, false);
   }
 
-  @Post(':id/banner')
+  @Post('events/:id/banner')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -97,7 +100,11 @@ export class EventsAdminController {
     file: Express.Multer.File,
   ) {
     await this.eventsService.requireEventForAdmin(id);
-    const { key, url } = await this.s3Service.putBanner(id, file.buffer, file.mimetype);
+    const { key, url } = await this.s3Service.putBanner(
+      id,
+      file.buffer,
+      file.mimetype,
+    );
     return this.eventsService.setBanner(id, key, url);
   }
 }

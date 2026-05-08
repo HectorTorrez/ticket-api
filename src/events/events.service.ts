@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { paginationSkipTake } from '../common/dto/pagination-query.dto';
 import { CreateEventDto } from './dto/create-event.dto';
+import { QueryAdminEventsDto } from './dto/query-admin-events.dto';
 import { QueryPublishedEventsDto } from './dto/query-published-events.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { randomBytes } from 'crypto';
@@ -143,6 +144,61 @@ export class EventsService {
     const where = {
       deletedAt: null,
       ...(publishedOnly ? { published: true } : {}),
+      ...(query.from || query.to
+        ? {
+            startsAt: {
+              ...(query.from ? { gte: new Date(query.from) } : {}),
+              ...(query.to ? { lte: new Date(query.to) } : {}),
+            },
+          }
+        : {}),
+      ...(query.q
+        ? {
+            OR: [
+              { title: { contains: query.q, mode: 'insensitive' as const } },
+              { slug: { contains: query.q, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        orderBy: { startsAt: 'asc' },
+        skip,
+        take,
+        include: {
+          ticketTypes: {
+            select: {
+              id: true,
+              tier: true,
+              name: true,
+              price: true,
+              quantityRemaining: true,
+              saleStartsAt: true,
+              saleEndsAt: true,
+            },
+          },
+        },
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+    };
+  }
+
+  async listForAdmin(query: QueryAdminEventsDto) {
+    const { skip, take } = paginationSkipTake(query.page, query.limit);
+
+    const where = {
+      deletedAt: null,
+      ...(query.published !== undefined ? { published: query.published } : {}),
       ...(query.from || query.to
         ? {
             startsAt: {
