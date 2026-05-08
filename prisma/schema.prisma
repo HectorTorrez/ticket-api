@@ -1,0 +1,161 @@
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum TicketStatus {
+  ACTIVE
+  USED
+  CANCELLED
+}
+
+enum TicketTier {
+  GENERAL
+  VIP
+  EARLY_BIRD
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(CUSTOMER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  refreshTokens    RefreshToken[]
+  eventsOrganized  Event[]        @relation("EventOrganizer")
+  orders           Order[]
+  tickets          Ticket[]
+  validatedTickets Ticket[]       @relation("TicketValidator")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  organizerId String
+  title       String
+  slug        String    @unique
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime
+  venue       String?
+  published   Boolean   @default(false)
+  bannerKey   String?
+  bannerUrl   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  organizer   User         @relation("EventOrganizer", fields: [organizerId], references: [id])
+  ticketTypes TicketType[]
+  tickets     Ticket[]
+
+  @@index([published, startsAt])
+}
+
+model TicketType {
+  id                String     @id @default(uuid())
+  eventId           String
+  tier              TicketTier
+  name              String
+  price             Decimal    @db.Decimal(12, 2)
+  quantityTotal     Int
+  quantityRemaining Int
+  saleStartsAt      DateTime?
+  saleEndsAt        DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  event      Event       @relation(fields: [eventId], references: [id])
+  orderLines OrderLine[]
+  tickets    Ticket[]
+
+  @@unique([eventId, tier])
+  @@index([eventId])
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  userId           String
+  status           OrderStatus @default(PENDING)
+  currency         String      @default("USD")
+  totalAmount      Decimal     @db.Decimal(12, 2)
+  expiresAt        DateTime
+  paidAt           DateTime?
+  paymentReference String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id])
+  lines OrderLine[]
+
+  @@index([userId, status, createdAt])
+}
+
+model OrderLine {
+  id           String  @id @default(uuid())
+  orderId      String
+  ticketTypeId String
+  quantity     Int
+  unitPrice    Decimal @db.Decimal(12, 2)
+
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
+  tickets    Ticket[]
+
+  @@index([orderId])
+  @@index([ticketTypeId])
+}
+
+model Ticket {
+  id                String       @id @default(uuid())
+  publicCode        String       @unique @default(uuid())
+  orderLineId       String
+  userId            String
+  eventId           String
+  ticketTypeId      String
+  status            TicketStatus @default(ACTIVE)
+  usedAt            DateTime?
+  validatedByUserId String?
+
+  orderLine     OrderLine @relation(fields: [orderLineId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+  event         Event     @relation(fields: [eventId], references: [id])
+  ticketType    TicketType @relation(fields: [ticketTypeId], references: [id])
+  validatedBy   User?      @relation("TicketValidator", fields: [validatedByUserId], references: [id])
+
+  @@index([eventId])
+  @@index([userId])
+}
