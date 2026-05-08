@@ -27,7 +27,10 @@ function mergeLines(lines: CreateOrderDto['lines']) {
   for (const l of lines) {
     map.set(l.ticketTypeId, (map.get(l.ticketTypeId) ?? 0) + l.quantity);
   }
-  return [...map.entries()].map(([ticketTypeId, quantity]) => ({ ticketTypeId, quantity }));
+  return [...map.entries()].map(([ticketTypeId, quantity]) => ({
+    ticketTypeId,
+    quantity,
+  }));
 }
 
 @Injectable()
@@ -54,7 +57,9 @@ export class OrdersService {
         take,
         include: {
           lines: {
-            include: { ticketType: { select: { tier: true, name: true, price: true } } },
+            include: {
+              ticketType: { select: { tier: true, name: true, price: true } },
+            },
           },
         },
       }),
@@ -109,79 +114,85 @@ export class OrdersService {
     const expiresAt = new Date(Date.now() + ttlMinutes * 60_000);
     const normalized = mergeLines(dto.lines);
 
-    const { orderId, snapshots } = await this.prisma.$transaction(async (tx) => {
-      const ids = [...normalized.map((l) => l.ticketTypeId)].sort();
-      for (const id of ids) {
-        await tx.$executeRawUnsafe(
-          `SELECT id FROM "TicketType" WHERE id = $1 FOR UPDATE`,
-          id,
-        );
-      }
-
-      let total = new Prisma.Decimal(0);
-      const linesPayload: {
-        ticketTypeId: string;
-        quantity: number;
-        unitPrice: Prisma.Decimal;
-      }[] = [];
-
-      const now = new Date();
-
-      for (const line of normalized) {
-        const tt = await tx.ticketType.findUnique({
-          where: { id: line.ticketTypeId },
-          include: { event: true },
-        });
-        if (!tt || tt.event.deletedAt) {
-          throw new NotFoundException('Ticket type not found');
-        }
-        if (!tt.event.published) {
-          throw new BadRequestException('Event is not on sale');
-        }
-        if (tt.saleStartsAt && now < tt.saleStartsAt) {
-          throw new BadRequestException('Sale has not started for this ticket type');
-        }
-        if (tt.saleEndsAt && now > tt.saleEndsAt) {
-          throw new BadRequestException('Sale has ended for this ticket type');
-        }
-        if (tt.quantityRemaining < line.quantity) {
-          throw new ConflictException('Not enough tickets remaining');
+    const { orderId, snapshots } = await this.prisma.$transaction(
+      async (tx) => {
+        const ids = [...normalized.map((l) => l.ticketTypeId)].sort();
+        for (const id of ids) {
+          await tx.$executeRawUnsafe(
+            `SELECT id FROM "TicketType" WHERE id = $1 FOR UPDATE`,
+            id,
+          );
         }
 
-        total = total.add(tt.price.mul(line.quantity));
-        linesPayload.push({
-          ticketTypeId: tt.id,
-          quantity: line.quantity,
-          unitPrice: tt.price,
-        });
-      }
+        let total = new Prisma.Decimal(0);
+        const linesPayload: {
+          ticketTypeId: string;
+          quantity: number;
+          unitPrice: Prisma.Decimal;
+        }[] = [];
 
-      for (const line of normalized) {
-        await tx.ticketType.update({
-          where: { id: line.ticketTypeId },
-          data: { quantityRemaining: { decrement: line.quantity } },
-        });
-      }
+        const now = new Date();
 
-      const order = await tx.order.create({
-        data: {
-          userId,
-          status: OrderStatus.PENDING,
-          totalAmount: total,
-          expiresAt,
-          lines: {
-            create: linesPayload.map((l) => ({
-              ticketTypeId: l.ticketTypeId,
-              quantity: l.quantity,
-              unitPrice: l.unitPrice,
-            })),
+        for (const line of normalized) {
+          const tt = await tx.ticketType.findUnique({
+            where: { id: line.ticketTypeId },
+            include: { event: true },
+          });
+          if (!tt || tt.event.deletedAt) {
+            throw new NotFoundException('Ticket type not found');
+          }
+          if (!tt.event.published) {
+            throw new BadRequestException('Event is not on sale');
+          }
+          if (tt.saleStartsAt && now < tt.saleStartsAt) {
+            throw new BadRequestException(
+              'Sale has not started for this ticket type',
+            );
+          }
+          if (tt.saleEndsAt && now > tt.saleEndsAt) {
+            throw new BadRequestException(
+              'Sale has ended for this ticket type',
+            );
+          }
+          if (tt.quantityRemaining < line.quantity) {
+            throw new ConflictException('Not enough tickets remaining');
+          }
+
+          total = total.add(tt.price.mul(line.quantity));
+          linesPayload.push({
+            ticketTypeId: tt.id,
+            quantity: line.quantity,
+            unitPrice: tt.price,
+          });
+        }
+
+        for (const line of normalized) {
+          await tx.ticketType.update({
+            where: { id: line.ticketTypeId },
+            data: { quantityRemaining: { decrement: line.quantity } },
+          });
+        }
+
+        const order = await tx.order.create({
+          data: {
+            userId,
+            status: OrderStatus.PENDING,
+            totalAmount: total,
+            expiresAt,
+            lines: {
+              create: linesPayload.map((l) => ({
+                ticketTypeId: l.ticketTypeId,
+                quantity: l.quantity,
+                unitPrice: l.unitPrice,
+              })),
+            },
           },
-        },
-      });
+        });
 
-      const snapshots = await loadOrderInventorySnapshotTx(tx, order.id);
-      return { orderId: order.id, snapshots };
-    });
+        const snapshots = await loadOrderInventorySnapshotTx(tx, order.id);
+        return { orderId: order.id, snapshots };
+      },
+    );
 
     for (const s of snapshots) {
       this.inventoryGateway.emitTicketUpdate(s);
@@ -190,20 +201,28 @@ export class OrdersService {
     return this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        lines: { include: { ticketType: { select: { tier: true, name: true, price: true } } } },
+        lines: {
+          include: {
+            ticketType: { select: { tier: true, name: true, price: true } },
+          },
+        },
       },
     });
   }
 
   async mockPay(userId: string, orderId: string, dto: MockPayDto) {
     const snapshots = await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe(`SELECT id FROM "Order" WHERE id = $1 FOR UPDATE`, orderId);
+      await tx.$executeRawUnsafe(
+        `SELECT id FROM "Order" WHERE id = $1 FOR UPDATE`,
+        orderId,
+      );
 
       const order = await tx.order.findUnique({
         where: { id: orderId },
       });
       if (!order) throw new NotFoundException('Order not found');
-      if (order.userId !== userId) throw new ForbiddenException('Not your order');
+      if (order.userId !== userId)
+        throw new ForbiddenException('Not your order');
 
       if (order.status !== OrderStatus.PENDING) {
         throw new ConflictException('Order is not awaiting payment');
@@ -258,7 +277,10 @@ export class OrdersService {
 
   async cancel(userId: string, orderId: string) {
     const snapshots = await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe(`SELECT id FROM "Order" WHERE id = $1 FOR UPDATE`, orderId);
+      await tx.$executeRawUnsafe(
+        `SELECT id FROM "Order" WHERE id = $1 FOR UPDATE`,
+        orderId,
+      );
 
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order || order.userId !== userId) {
@@ -292,7 +314,10 @@ export class OrdersService {
   /** Called by scheduler when expiresAt passed */
   async expireOrder(orderId: string) {
     const snapshots = await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe(`SELECT id FROM "Order" WHERE id = $1 FOR UPDATE`, orderId);
+      await tx.$executeRawUnsafe(
+        `SELECT id FROM "Order" WHERE id = $1 FOR UPDATE`,
+        orderId,
+      );
 
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order || order.status !== OrderStatus.PENDING) {

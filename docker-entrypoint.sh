@@ -1,4 +1,6 @@
 #!/bin/sh
 set -e
-pnpm exec prisma migrate deploy
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$APP_DIR"
+./node_modules/.bin/prisma migrate deploy
 exec node dist/src/main.js
