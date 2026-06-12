@@ -129,4 +129,4 @@ prisma/             Schema and migrations
 
 ## License
 
-UNLICENSED — private project.
+[MIT](./LICENSE) — free to use, modify, and fork.
