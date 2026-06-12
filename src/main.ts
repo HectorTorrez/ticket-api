@@ -44,8 +44,8 @@ async function bootstrap() {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Ticket API')
-    .setDescription('Digital ticketing MVP backend')
+    .setTitle('Tide Tickets API')
+    .setDescription('Plataforma de venta y validación de entradas digitales')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
