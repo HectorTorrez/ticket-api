@@ -1,0 +1,57 @@
+digraph "Arquitectura Cloud - Plataforma de Boletaría Digital" {
+	graph [fontcolor="#2D3436" fontname="Sans-Serif" fontsize=18 label="Arquitectura Cloud - Plataforma de Boletaría Digital" nodesep=0.60 pad=0.5 rankdir=LR ranksep=0.75 size="28,16" splines=ortho]
+	node [fixedsize=true fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 height=1.4 imagescale=true labelloc=b shape=box style=rounded width=1.4]
+	edge [color="#7B8894"]
+	aeb36e66810c4ec88044bcbdc9694945 [label="Usuarios Web / Móvil" height=1.9 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/onprem/client/users.png" shape=none]
+	ae6aa30d8e484de5b50d5da9a16bf91e [label="CloudWatch
+Logs y Métricas" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/management/cloudwatch.png" shape=none]
+	"80f2fecdf1594c42b2fc041c6162b506" -> "0f00fb6c7ee74a159870ce14b2743111" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	subgraph "cluster_Frontend estático" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Frontend estático" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"80f2fecdf1594c42b2fc041c6162b506" [label="CloudFront
+(recomendado)" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/network/cloudfront.png" shape=none]
+		"0f00fb6c7ee74a159870ce14b2743111" [label="S3
+SPA ticket-frontend" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/storage/simple-storage-service-s3.png" shape=none]
+	}
+	"185de90a74b64798abe929a6403d7e33" -> "398464605c6c4aebb73a0ed4effd8bfc" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"185de90a74b64798abe929a6403d7e33" -> bd028314a47b480ca4b549f676561a59 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	subgraph "cluster_VPC - AWS" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="VPC - AWS" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"2fc81272ddc544d4986d2bf6b8495d3c" [label="Internet Gateway" height=1.9 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/network/internet-gateway.png" shape=none]
+		"7c3306383e8a49f199d8c161519d7277" [label="Certificado SSL/TLS
+(ALB / CloudFront)" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/security/certificate-manager.png" shape=none]
+		subgraph "cluster_Subred Pública" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Subred Pública" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"1b908f80ed484e0788a04ec529e4bbd7" [label="Application Load Balancer
+HTTPS" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/network/elb-application-load-balancer.png" shape=none]
+		}
+		subgraph "cluster_Subred Pública - Backend (Auto Scaling)" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Subred Pública - Backend (Auto Scaling)" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"185de90a74b64798abe929a6403d7e33" [label="Auto Scaling Group" height=1.9 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/compute/application-auto-scaling.png" shape=none]
+			"398464605c6c4aebb73a0ed4effd8bfc" [label="EC2
+ticket-api" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/compute/ec2.png" shape=none]
+			bd028314a47b480ca4b549f676561a59 [label="EC2
+ticket-api" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/compute/ec2.png" shape=none]
+		}
+		subgraph "cluster_Capa de Datos (privada recomendada)" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Capa de Datos (privada recomendada)" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			ea53ad531f1f459cbc54080380849b79 [label="RDS PostgreSQL" height=1.9 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/database/rds.png" shape=none]
+			"1ec476b43a1e4aa1b45208e1ef1b3335" [label="S3
+Banners / PDFs" height=2.3 image="/Users/hectorburuca/Documents/UNIVERSIDAD/project/ticket-api/.venv-diagrams/lib/python3.14/site-packages/resources/aws/storage/simple-storage-service-s3.png" shape=none]
+		}
+	}
+	aeb36e66810c4ec88044bcbdc9694945 -> "80f2fecdf1594c42b2fc041c6162b506" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	aeb36e66810c4ec88044bcbdc9694945 -> "2fc81272ddc544d4986d2bf6b8495d3c" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"2fc81272ddc544d4986d2bf6b8495d3c" -> "7c3306383e8a49f199d8c161519d7277" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"7c3306383e8a49f199d8c161519d7277" -> "1b908f80ed484e0788a04ec529e4bbd7" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"1b908f80ed484e0788a04ec529e4bbd7" -> "185de90a74b64798abe929a6403d7e33" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"398464605c6c4aebb73a0ed4effd8bfc" -> ea53ad531f1f459cbc54080380849b79 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	bd028314a47b480ca4b549f676561a59 -> ea53ad531f1f459cbc54080380849b79 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"398464605c6c4aebb73a0ed4effd8bfc" -> "1ec476b43a1e4aa1b45208e1ef1b3335" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	bd028314a47b480ca4b549f676561a59 -> "1ec476b43a1e4aa1b45208e1ef1b3335" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"1b908f80ed484e0788a04ec529e4bbd7" -> ae6aa30d8e484de5b50d5da9a16bf91e [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"185de90a74b64798abe929a6403d7e33" -> ae6aa30d8e484de5b50d5da9a16bf91e [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"398464605c6c4aebb73a0ed4effd8bfc" -> ae6aa30d8e484de5b50d5da9a16bf91e [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	bd028314a47b480ca4b549f676561a59 -> ae6aa30d8e484de5b50d5da9a16bf91e [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	ea53ad531f1f459cbc54080380849b79 -> ae6aa30d8e484de5b50d5da9a16bf91e [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+}

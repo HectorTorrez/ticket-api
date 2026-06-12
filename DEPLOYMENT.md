@@ -2,6 +2,8 @@
 
 This API fits the target topology below (ALB + Auto Scaling + RDS + S3 + CloudWatch). Local/docker-compose remains useful for development only.
 
+For the full architecture document (diagram review, security groups, env vars, checklists), see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+
 ## Target AWS topology (reference)
 
 Aligned with the **VPC** layout you are using: users reach a **static frontend** on **S3** (optionally behind CloudFront, not shown in all diagrams) and the **API** through **HTTPS** terminated at **ACM** on an **Application Load Balancer**, which forwards traffic to an **Auto Scaling Group** of **EC2** instances running this NestJS service.
