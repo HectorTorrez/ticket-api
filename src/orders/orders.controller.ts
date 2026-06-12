@@ -1,4 +1,11 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../generated/prisma/enums';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -18,7 +25,10 @@ export class OrdersController {
 
   @Post()
   @ApiOperation({ summary: 'Create pending order and reserve inventory' })
-  create(@CurrentUser() user: Express.UserPayload, @Body() dto: CreateOrderDto) {
+  create(
+    @CurrentUser() user: Express.UserPayload,
+    @Body() dto: CreateOrderDto,
+  ) {
     return this.ordersService.create(user.userId, dto);
   }
 
@@ -34,7 +44,10 @@ export class OrdersController {
 
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Cancel pending reservation' })
-  cancel(@CurrentUser() user: Express.UserPayload, @Param('id', ParseUUIDPipe) id: string) {
+  cancel(
+    @CurrentUser() user: Express.UserPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.ordersService.cancel(user.userId, id);
   }
 }

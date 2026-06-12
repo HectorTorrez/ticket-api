@@ -294,7 +294,9 @@ export class OrdersService {
       }
 
       if (order.status !== OrderStatus.PENDING) {
-        throw new ConflictException('Solo se pueden cancelar pedidos pendientes');
+        throw new ConflictException(
+          'Solo se pueden cancelar pedidos pendientes',
+        );
       }
 
       if (order.expiresAt < new Date()) {

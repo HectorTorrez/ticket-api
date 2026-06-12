@@ -46,14 +46,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
       } else if (typeof body === 'object' && body !== null) {
         const b = body as Record<string, unknown>;
         message = (b.message as string | string[]) ?? exception.message;
-        code = translateErrorCode((b.error as string) ?? HttpStatus[status] ?? 'HTTP_ERROR');
+        code = translateErrorCode(
+          (b.error as string) ?? HttpStatus[status] ?? 'HTTP_ERROR',
+        );
       }
     } else if (exception instanceof Error) {
       this.logger.error(exception.stack);
       message = 'Error interno del servidor';
     }
 
-    const normalizedMessage = Array.isArray(message) ? message.join(', ') : message;
+    const normalizedMessage = Array.isArray(message)
+      ? message.join(', ')
+      : message;
 
     response.status(status).json({
       statusCode: status,

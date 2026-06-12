@@ -1,98 +1,132 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Ticket API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+REST and WebSocket backend for a digital ticketing platform. Organizers publish events, define ticket types, and sell seats; customers browse, checkout, and receive QR tickets; admins validate tickets at the gate.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**Repository:** [github.com/HectorTorrez/ticket-api](https://github.com/HectorTorrez/ticket-api)
 
-## Description
+## What it does
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Area | Description |
+|------|-------------|
+| **Auth** | JWT access + refresh tokens, roles `CUSTOMER` and `ADMIN` |
+| **Events** | Public catalog, admin CRUD, banner uploads |
+| **Orders** | Inventory reservation with TTL, mock payment flow, expiry scheduler |
+| **Tickets** | Issuance after payment, QR PNG generation on demand |
+| **QR gate** | Admin validation endpoint marks tickets as used |
+| **Realtime** | Socket.IO namespace `/inventory` broadcasts availability updates |
+| **Dashboard** | Admin summary metrics |
 
-## Project setup
+## Tech stack
 
-```bash
-$ pnpm install
+- **NestJS 11** — HTTP API, guards, Swagger at `/docs`
+- **Prisma 7 + PostgreSQL 16** — persistence
+- **Socket.IO** — live inventory
+- **AWS S3** — event banner storage (optional in dev)
+- **Docker** — production image with auto-migrations
+
+## How it works
+
+```
+Browser / ticket-frontend
+        │
+        ▼
+   ALB (production) or localhost:3001
+        │
+        ▼
+   NestJS  /api/v1/*
+        ├──► PostgreSQL (users, events, orders, tickets)
+        ├──► S3 (event banners, when configured)
+        └──► WebSocket /inventory (JWT auth)
 ```
 
-## Compile and run the project
+1. A customer creates an order → seats are reserved in PostgreSQL with a configurable TTL.
+2. Payment is simulated via `POST /orders/:id/mock-pay` (real PSP integration is planned).
+3. Paid orders emit tickets with public codes; QR images are generated on `GET /tickets/:code/qr`.
+4. Inventory changes are pushed to connected clients on the `/inventory` socket namespace.
+
+See [API.md](./API.md) for the full HTTP/WebSocket contract.
+
+## Configuration status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| PostgreSQL | **Required** | `DATABASE_URL` |
+| JWT secrets | **Required** | ≥ 32 characters each |
+| S3 banners | **Optional** | Code is ready; set `S3_BUCKET` + `S3_PUBLIC_BASE_URL` or uploads return 503 |
+| Mock payments | **MVP** | `POST /orders/:id/mock-pay` — replace with a real PSP later |
+| Ticket PDFs in S3 | **Future** | QR PNG is served on demand today |
+| Email notifications | **Future** | Planned via SQS + Lambda |
+| Redis / Socket.IO scaling | **Future** | Use ALB sticky sessions or Redis adapter for multi-instance ASG |
+| CI/CD to AWS | **Future** | GitHub Actions workflow runs build/tests; deploy steps documented in [IMPLEMENTATION.md](./IMPLEMENTATION.md) |
+
+Copy [`.env.example`](./.env.example) to `.env` and fill in secrets. Never commit `.env`.
+
+## Local development
+
+**Prerequisites:** Node 20+, pnpm, PostgreSQL 16 (or use Docker Compose).
 
 ```bash
-# development
-$ pnpm run start
+pnpm install
+cp .env.example .env
+# Edit .env — at minimum DATABASE_URL and JWT secrets
 
-# watch mode
-$ pnpm run start:dev
+pnpm prisma:migrate
+pnpm exec prisma db seed   # optional ADMIN user (SEED_ADMIN_* in .env)
 
-# production mode
-$ pnpm run start:prod
+pnpm run start:dev         # http://localhost:3001
 ```
 
-## Run tests
+**Swagger:** http://localhost:3001/docs  
+**Health:** http://localhost:3001/api/v1/health
+
+### Docker Compose (API + Postgres)
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+docker compose up --build
+# API on http://localhost:3001 (or PORT from .env)
 ```
 
-## Deployment
+## Scripts
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Command | Purpose |
+|---------|---------|
+| `pnpm run start:dev` | Watch mode |
+| `pnpm run build` | Compile (runs `prisma generate` first) |
+| `pnpm run start:prod` | Run compiled app |
+| `pnpm prisma:migrate` | Dev migrations |
+| `pnpm prisma:migrate:deploy` | Production migrations |
+| `pnpm run test` | Unit tests (Jest) |
+| `pnpm run test:e2e` | Smoke e2e |
+| `pnpm run test:e2e:concurrency` | Concurrency test (needs Postgres) |
+| `pnpm run lint` | ESLint |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Project structure
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+```
+src/
+├── auth/           JWT login, register, refresh
+├── events/         Public + admin event endpoints
+├── orders/         Checkout, mock pay, reservation expiry
+├── tickets/        Customer tickets, QR PNG
+├── qr/             Gate validation (admin)
+├── websocket/      Inventory Socket.IO gateway
+├── aws/            S3 banner uploads
+├── dashboard/      Admin metrics
+└── health/         Liveness + readiness (DB)
+prisma/             Schema and migrations
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Related documentation
 
-## Resources
+| Document | Content |
+|----------|---------|
+| [API.md](./API.md) | REST/WebSocket reference for frontend consumers |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | AWS topology, security groups, env mapping |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | EC2/ASG/ALB operational notes |
+| [IMPLEMENTATION.md](./IMPLEMENTATION.md) | Step-by-step local setup, AWS deployment, and CI/CD |
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+**Frontend:** [ticket-frontend](https://github.com/HectorTorrez/ticket-frontend)
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED — private project.

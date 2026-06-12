@@ -23,7 +23,8 @@ export class AuthService {
 
   async register(email: string, password: string) {
     const existing = await this.usersService.findByEmail(email);
-    if (existing) throw new ConflictException('El correo electrónico ya está registrado');
+    if (existing)
+      throw new ConflictException('El correo electrónico ya está registrado');
 
     const passwordHash = await argon2.hash(password);
     const user = await this.usersService.createCustomer(email, passwordHash);
@@ -69,13 +70,19 @@ export class AuthService {
     return createHash('sha256').update(raw).digest('hex');
   }
 
-  private async issueTokens(userId: string, email: string, role: AccessTokenPayload['role']) {
+  private async issueTokens(
+    userId: string,
+    email: string,
+    role: AccessTokenPayload['role'],
+  ) {
     const accessPayload: AccessTokenPayload = { sub: userId, email, role };
 
     const accessToken = await this.jwtService.signAsync(accessPayload);
 
     const rawRefresh = randomBytes(48).toString('hex');
-    const refreshExpires = this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES');
+    const refreshExpires = this.configService.getOrThrow<string>(
+      'JWT_REFRESH_EXPIRES',
+    );
     const expiresAt = new Date(Date.now() + parseDurationMs(refreshExpires));
 
     await this.prisma.refreshToken.create({

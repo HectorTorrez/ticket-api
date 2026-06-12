@@ -17,7 +17,10 @@ export class QrController {
 
   @Post('validate')
   @ApiOperation({ summary: 'Validate scanned ticket code' })
-  validate(@CurrentUser() admin: Express.UserPayload, @Body() dto: ValidateQrDto) {
+  validate(
+    @CurrentUser() admin: Express.UserPayload,
+    @Body() dto: ValidateQrDto,
+  ) {
     return this.qrService.validate(admin.userId, dto.code.trim());
   }
 }

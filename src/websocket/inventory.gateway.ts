@@ -42,9 +42,12 @@ export class InventoryGateway implements OnGatewayConnection {
         return;
       }
 
-      const payload = await this.jwtService.verifyAsync<AccessTokenPayload>(token, {
-        secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
-      });
+      const payload = await this.jwtService.verifyAsync<AccessTokenPayload>(
+        token,
+        {
+          secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        },
+      );
 
       client.data.userId = payload.sub;
       client.data.role = payload.role;

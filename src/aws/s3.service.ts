@@ -16,7 +16,8 @@ export class S3Service {
   constructor(private readonly configService: ConfigService) {
     const region = this.configService.get<string>('AWS_REGION') ?? 'us-east-1';
     this.bucket = this.configService.get<string>('S3_BUCKET') || undefined;
-    this.publicBase = this.configService.get<string>('S3_PUBLIC_BASE_URL') || undefined;
+    this.publicBase =
+      this.configService.get<string>('S3_PUBLIC_BASE_URL') || undefined;
 
     this.client = new S3Client({
       region,
@@ -25,7 +26,9 @@ export class S3Service {
         this.configService.get<string>('AWS_SECRET_ACCESS_KEY')
           ? {
               accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID')!,
-              secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY')!,
+              secretAccessKey: this.configService.get<string>(
+                'AWS_SECRET_ACCESS_KEY',
+              )!,
             }
           : undefined,
     });
@@ -49,7 +52,11 @@ export class S3Service {
   async putBanner(eventId: string, buffer: Buffer, mimeType: string) {
     this.assertConfigured();
     const ext =
-      mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+      mimeType === 'image/png'
+        ? 'png'
+        : mimeType === 'image/webp'
+          ? 'webp'
+          : 'jpg';
     const key = `events/${eventId}/${randomUUID()}.${ext}`;
     await this.client.send(
       new PutObjectCommand({

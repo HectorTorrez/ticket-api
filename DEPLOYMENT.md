@@ -1,12 +1,15 @@
-# Deployment notes (AWS)
+# Deployment Notes (AWS)
 
-This API fits the target topology below (ALB + Auto Scaling + RDS + S3 + CloudWatch). Local/docker-compose remains useful for development only.
+Operational notes for deploying this API on AWS (ALB + Auto Scaling + RDS + S3 + CloudWatch). Local `docker-compose.yml` is for development only.
 
-For the full architecture document (diagram review, security groups, env vars, checklists), see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+For the full step-by-step guide (local setup, AWS, CI/CD), see **[IMPLEMENTATION.md](IMPLEMENTATION.md)**.  
+For architecture diagrams and security groups, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
-## Target AWS topology (reference)
+---
 
-Aligned with the **VPC** layout you are using: users reach a **static frontend** on **S3** (optionally behind CloudFront, not shown in all diagrams) and the **API** through **HTTPS** terminated at **ACM** on an **Application Load Balancer**, which forwards traffic to an **Auto Scaling Group** of **EC2** instances running this NestJS service.
+## Target AWS topology
+
+Users reach a **static frontend** on **S3** (optionally behind CloudFront) and the **API** through **HTTPS** terminated at **ACM** on an **Application Load Balancer**, which forwards to an **Auto Scaling Group** of **EC2** instances running this NestJS service.
 
 ```mermaid
 flowchart LR
@@ -19,7 +22,7 @@ flowchart LR
   API1[EC2_API]
   API2[EC2_API]
   RDS[RDS_PostgreSQL]
-  S3API[S3_banners_PDFs]
+  S3API[S3_banners]
   CW[CloudWatch]
 
   Users --> FE
@@ -38,47 +41,79 @@ flowchart LR
   RDS --> CW
 ```
 
-**Buckets**
+### Buckets
 
-- **S3 (frontend)**: static assets for the SPA; no IAM keys on EC2 for this bucket unless you generate artifacts from the backend.
-- **S3 (API assets)**: banners and optional ticket PDFs — EC2 instance profile should allow `s3:PutObject` / `GetObject` / `DeleteObject` only on this bucket (and prefixes such as `events/*`, `tickets/*`).
+- **S3 (frontend):** static assets for the web app.
+- **S3 (API assets):** event banners — EC2 instance profile needs `s3:PutObject` / `GetObject` / `DeleteObject` on prefixes such as `events/*`. Ticket PDFs in S3 are **not implemented** yet.
 
-**Networking**
+### Networking
 
-- **RDS PostgreSQL** should live in **private subnets** with security groups allowing inbound **only from the EC2/ASG security group** on the DB port (5432). Do not expose RDS to the internet.
-- **EC2** (per your diagram in public subnets behind the ALB): security group allows **22** from restricted IPs (bastion/bastion-less with SSM Session Manager preferred), and allows the ALB security group to reach the app port (e.g. **3000**).
+- **RDS PostgreSQL** in **private subnets**; security group allows inbound **only from the EC2/ASG security group** on port 5432.
+- **EC2:** security group allows the ALB security group to reach app port **3000**; restrict SSH or prefer SSM Session Manager.
+
+---
 
 ## Application configuration on EC2 / ASG
 
-1. **DATABASE_URL** → RDS endpoint (TLS optional via RDS proxy / parameter groups as you mature).
-2. **JWT_ACCESS_SECRET** / **JWT_REFRESH_SECRET** (≥32 chars) via **SSM Parameter Store** or **Secrets Manager**, injected by launch template / user-data / container env.
-3. **S3_BUCKET**, **S3_PUBLIC_BASE_URL** (or CloudFront domain) for object URLs returned to clients.
-4. **CORS_ORIGINS**: origins for the **S3 website / CloudFront** frontend URL(s), not `*` in production.
+| Variable | Source |
+|----------|--------|
+| `DATABASE_URL` | RDS endpoint |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | SSM Parameter Store or Secrets Manager (≥ 32 chars) |
+| `S3_BUCKET`, `S3_PUBLIC_BASE_URL` | Assets bucket (optional until admin banner uploads are needed) |
+| `CORS_ORIGINS` | Frontend CloudFront/S3 origin(s) — not `*` in production |
+| `AWS_REGION` | Same region as S3/RDS; prefer IAM instance profile over access keys |
+
+---
 
 ## Load balancer and scaling
 
-- **Target group health checks**: `GET /api/v1/health` (liveness); optionally a deeper check with `GET /api/v1/health/ready` (PostgreSQL) using a appropriate matcher and threshold so draining instances do not kill traffic prematurely.
-- **Socket.IO (`/inventory` namespace)**: with **multiple EC2 instances**, enable **sticky sessions** on the ALB target group **or** adopt the **Redis adapter** for Socket.IO so room broadcasts work across instances. Until then, treat inventory WebSockets as best-effort and keep REST as source of truth.
+- **Health checks:** `GET /api/v1/health` (liveness); optional `GET /api/v1/health/ready` (PostgreSQL).
+- **Socket.IO (`/inventory`):** with multiple EC2 instances, enable **sticky sessions** on the ALB target group **or** adopt a **Redis adapter** for Socket.IO. Until then, treat live inventory WebSockets as best-effort; REST remains the source of truth.
+
+---
 
 ## TLS
 
-- **ACM** certificate on the **ALB** for public HTTPS. The Node process can stay HTTP behind the ALB (listener forwards to target port).
+- **ACM** certificate on the **ALB** for public HTTPS. The Node process can stay HTTP behind the ALB.
+
+---
 
 ## Observability
 
-- Ship application logs to **CloudWatch Logs** (agent or FireLens on ECS if you move off raw EC2 later).
-- ALB access logs, RDS Enhanced Monitoring / Performance Insights, and ASG metrics complement API logs.
+- Application logs → **CloudWatch Logs** (agent or container log driver).
+- ALB access logs, RDS Enhanced Monitoring, ASG metrics.
+
+---
 
 ## Build and migrate
 
-- Build/run with [Dockerfile](Dockerfile); point compose-style Postgres at **RDS** in production ([docker-compose.yml](docker-compose.yml) remains dev-oriented).
-- Run **`prisma migrate deploy`** on deploy (see [docker-entrypoint.sh](docker-entrypoint.sh)).
-- After clone: `pnpm install`, `pnpm prisma:generate` (or **`pnpm build`** via **`prebuild`**).
+```bash
+docker build -t ticket-api .
+docker run -p 3000:3000 --env-file .env.production ticket-api
+```
+
+- [`docker-entrypoint.sh`](docker-entrypoint.sh) runs `prisma migrate deploy` before starting the app.
+- After clone: `pnpm install`, `pnpm build` (includes `prisma generate` via `prebuild`).
+
+---
 
 ## Concurrency check
 
-With Postgres available: `pnpm run test:e2e:concurrency`.
+With Postgres available:
 
-## pnpm build scripts
+```bash
+pnpm run test:e2e:concurrency
+```
 
-If installs warn about ignored build scripts (Prisma engines, argon2), run `pnpm approve-builds` locally or allow scripts in CI.
+Run against staging RDS before go-live.
+
+---
+
+## Configuration deferred to later
+
+| Item | Status |
+|------|--------|
+| S3 banner bucket | Code ready — set env when needed |
+| Real payment provider | Mock pay only today |
+| Email / PDF pipeline | Not implemented |
+| CI/CD deploy to AWS | CI validates build; deploy is manual (see IMPLEMENTATION.md) |

@@ -9,24 +9,25 @@ export class DashboardService {
   async summary() {
     const now = new Date();
 
-    const [ticketsSold, revenueAgg, activeEvents, remainingInventory] = await Promise.all([
-      this.prisma.ticket.count(),
-      this.prisma.order.aggregate({
-        where: { status: OrderStatus.PAID },
-        _sum: { totalAmount: true },
-      }),
-      this.prisma.event.count({
-        where: {
-          deletedAt: null,
-          published: true,
-          endsAt: { gt: now },
-        },
-      }),
-      this.prisma.ticketType.aggregate({
-        where: { event: { deletedAt: null } },
-        _sum: { quantityRemaining: true },
-      }),
-    ]);
+    const [ticketsSold, revenueAgg, activeEvents, remainingInventory] =
+      await Promise.all([
+        this.prisma.ticket.count(),
+        this.prisma.order.aggregate({
+          where: { status: OrderStatus.PAID },
+          _sum: { totalAmount: true },
+        }),
+        this.prisma.event.count({
+          where: {
+            deletedAt: null,
+            published: true,
+            endsAt: { gt: now },
+          },
+        }),
+        this.prisma.ticketType.aggregate({
+          where: { event: { deletedAt: null } },
+          _sum: { quantityRemaining: true },
+        }),
+      ]);
 
     return {
       ticketsSold,

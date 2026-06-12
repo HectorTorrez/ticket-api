@@ -35,7 +35,10 @@ export class TicketTypesController {
 
   @Patch('ticket-types/:id')
   @ApiOperation({ summary: 'Update ticket type' })
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateTicketTypeDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateTicketTypeDto,
+  ) {
     return this.ticketTypesService.update(id, dto);
   }
 

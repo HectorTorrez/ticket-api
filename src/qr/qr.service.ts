@@ -8,7 +8,10 @@ export type QrValidationResult = 'VALID' | 'INVALID' | 'ALREADY_USED';
 export class QrService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async validate(adminUserId: string, code: string): Promise<{ result: QrValidationResult }> {
+  async validate(
+    adminUserId: string,
+    code: string,
+  ): Promise<{ result: QrValidationResult }> {
     const publicCode = this.normalizeTicketCode(code);
     return this.prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRawUnsafe<Array<{ id: string }>>(

@@ -28,7 +28,9 @@ export class OrdersExpiryScheduler {
       try {
         await this.ordersService.expireOrder(row.id);
       } catch (err) {
-        this.logger.warn(`Failed to expire order ${row.id}: ${(err as Error).message}`);
+        this.logger.warn(
+          `Failed to expire order ${row.id}: ${(err as Error).message}`,
+        );
       }
     }
   }

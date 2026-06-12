@@ -1,4 +1,11 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../generated/prisma/enums';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -17,7 +24,10 @@ export class MeOrdersController {
 
   @Get('me/orders')
   @ApiOperation({ summary: 'List current customer orders' })
-  listMine(@CurrentUser() user: Express.UserPayload, @Query() query: QueryMyOrdersDto) {
+  listMine(
+    @CurrentUser() user: Express.UserPayload,
+    @Query() query: QueryMyOrdersDto,
+  ) {
     return this.ordersService.listMine(user.userId, query);
   }
 

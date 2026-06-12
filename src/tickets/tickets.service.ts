@@ -6,7 +6,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class TicketsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async issueTicketsForPaidOrder(tx: Prisma.TransactionClient, orderId: string) {
+  async issueTicketsForPaidOrder(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+  ) {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: {
@@ -40,7 +43,15 @@ export class TicketsService {
       where: { userId },
       orderBy: { id: 'desc' },
       include: {
-        event: { select: { id: true, title: true, slug: true, startsAt: true, venue: true } },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            startsAt: true,
+            venue: true,
+          },
+        },
         ticketType: { select: { tier: true, name: true } },
       },
     });

@@ -26,7 +26,12 @@ export async function loadOrderInventorySnapshotTx(
     where: { orderId },
     include: {
       ticketType: {
-        select: { id: true, eventId: true, quantityRemaining: true, updatedAt: true },
+        select: {
+          id: true,
+          eventId: true,
+          quantityRemaining: true,
+          updatedAt: true,
+        },
       },
     },
   });

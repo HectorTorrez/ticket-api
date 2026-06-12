@@ -32,7 +32,9 @@ export class EventsService {
     const endsAt = new Date(dto.endsAt);
     const startsAt = new Date(dto.startsAt);
     if (endsAt <= startsAt) {
-      throw new BadRequestException('La fecha de fin debe ser posterior a la de inicio');
+      throw new BadRequestException(
+        'La fecha de fin debe ser posterior a la de inicio',
+      );
     }
 
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -49,7 +51,10 @@ export class EventsService {
           },
         });
       } catch (e: unknown) {
-        const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+        const code =
+          e && typeof e === 'object' && 'code' in e
+            ? String((e as { code?: string }).code)
+            : '';
         if (code === 'P2002') {
           slug = `${baseSlug}-${randomBytes(4).toString('hex')}`;
           continue;
@@ -69,7 +74,9 @@ export class EventsService {
     const startsAt = dto.startsAt ? new Date(dto.startsAt) : existing.startsAt;
     const endsAt = dto.endsAt ? new Date(dto.endsAt) : existing.endsAt;
     if (endsAt <= startsAt) {
-      throw new BadRequestException('La fecha de fin debe ser posterior a la de inicio');
+      throw new BadRequestException(
+        'La fecha de fin debe ser posterior a la de inicio',
+      );
     }
 
     try {
@@ -85,8 +92,12 @@ export class EventsService {
         },
       });
     } catch (e: unknown) {
-      const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
-      if (code === 'P2002') throw new ConflictException('El slug ya está en uso');
+      const code =
+        e && typeof e === 'object' && 'code' in e
+          ? String((e as { code?: string }).code)
+          : '';
+      if (code === 'P2002')
+        throw new ConflictException('El slug ya está en uso');
       throw e;
     }
   }
@@ -115,7 +126,11 @@ export class EventsService {
     });
   }
 
-  async setBanner(eventId: string, bannerKey: string, bannerUrl: string | null) {
+  async setBanner(
+    eventId: string,
+    bannerKey: string,
+    bannerUrl: string | null,
+  ) {
     return this.prisma.event.update({
       where: { id: eventId },
       data: { bannerKey, bannerUrl },

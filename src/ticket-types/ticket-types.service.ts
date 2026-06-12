@@ -21,7 +21,9 @@ export class TicketTypesService {
   async create(eventId: string, dto: CreateTicketTypeDto) {
     await this.eventsService.requireEventForAdmin(eventId);
 
-    const saleStartsAt = dto.saleStartsAt ? new Date(dto.saleStartsAt) : undefined;
+    const saleStartsAt = dto.saleStartsAt
+      ? new Date(dto.saleStartsAt)
+      : undefined;
     const saleEndsAt = dto.saleEndsAt ? new Date(dto.saleEndsAt) : undefined;
 
     try {
@@ -45,9 +47,14 @@ export class TicketTypesService {
       });
       return created;
     } catch (e: unknown) {
-      const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+      const code =
+        e && typeof e === 'object' && 'code' in e
+          ? String((e as { code?: string }).code)
+          : '';
       if (code === 'P2002') {
-        throw new ConflictException('Ya existe un tipo de entrada para este nivel en el evento');
+        throw new ConflictException(
+          'Ya existe un tipo de entrada para este nivel en el evento',
+        );
       }
       throw e;
     }
@@ -65,10 +72,15 @@ export class TicketTypesService {
     const sold = existing.quantityTotal - existing.quantityRemaining;
     const nextTotal = dto.quantity ?? existing.quantityTotal;
     if (nextTotal < sold) {
-      throw new ConflictException('La cantidad no puede ser menor que las entradas vendidas o reservadas');
+      throw new ConflictException(
+        'La cantidad no puede ser menor que las entradas vendidas o reservadas',
+      );
     }
 
-    const nextRemaining = dto.quantity !== undefined ? nextTotal - sold : existing.quantityRemaining;
+    const nextRemaining =
+      dto.quantity !== undefined
+        ? nextTotal - sold
+        : existing.quantityRemaining;
 
     try {
       const updated = await this.prisma.ticketType.update({
@@ -76,9 +88,11 @@ export class TicketTypesService {
         data: {
           tier: dto.tier,
           name: dto.name,
-          price: dto.price !== undefined ? new Prisma.Decimal(dto.price) : undefined,
+          price:
+            dto.price !== undefined ? new Prisma.Decimal(dto.price) : undefined,
           quantityTotal: dto.quantity !== undefined ? nextTotal : undefined,
-          quantityRemaining: dto.quantity !== undefined ? nextRemaining : undefined,
+          quantityRemaining:
+            dto.quantity !== undefined ? nextRemaining : undefined,
           saleStartsAt:
             dto.saleStartsAt !== undefined
               ? dto.saleStartsAt
@@ -101,9 +115,14 @@ export class TicketTypesService {
       });
       return updated;
     } catch (e: unknown) {
-      const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+      const code =
+        e && typeof e === 'object' && 'code' in e
+          ? String((e as { code?: string }).code)
+          : '';
       if (code === 'P2002') {
-        throw new ConflictException('Ya existe un tipo de entrada para este nivel en el evento');
+        throw new ConflictException(
+          'Ya existe un tipo de entrada para este nivel en el evento',
+        );
       }
       throw e;
     }
@@ -118,7 +137,9 @@ export class TicketTypesService {
       throw new NotFoundException('Tipo de entrada no encontrado');
     }
     if (existing.orderLines.length > 0) {
-      throw new ConflictException('El tipo de entrada tiene pedidos y no puede eliminarse');
+      throw new ConflictException(
+        'El tipo de entrada tiene pedidos y no puede eliminarse',
+      );
     }
 
     await this.prisma.ticketType.delete({ where: { id: ticketTypeId } });

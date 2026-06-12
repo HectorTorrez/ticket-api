@@ -11,7 +11,11 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { V } from '../../common/validation-messages';
 
 export class QueryPublishedEventsDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ default: true, description: 'Omit or true = published only; false = include drafts (still excludes soft-deleted).' })
+  @ApiPropertyOptional({
+    default: true,
+    description:
+      'Omit or true = published only; false = include drafts (still excludes soft-deleted).',
+  })
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined || value === null || value === '') return undefined;

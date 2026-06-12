@@ -13,13 +13,15 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
     if (!requiredRoles?.length) return true;
 
-    const request = context.switchToHttp().getRequest<{ user?: Express.UserPayload }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<{ user?: Express.UserPayload }>();
     const user = request.user;
     if (!user) throw new ForbiddenException('Falta el contexto del usuario');
 
