@@ -255,4 +255,25 @@ export class EventsService {
     if (!ev) throw new NotFoundException('Event not found');
     return ev;
   }
+
+  async findByIdForAdmin(eventId: string) {
+    const ev = await this.prisma.event.findFirst({
+      where: { id: eventId, deletedAt: null },
+      include: {
+        ticketTypes: {
+          select: {
+            id: true,
+            tier: true,
+            name: true,
+            price: true,
+            quantityRemaining: true,
+            saleStartsAt: true,
+            saleEndsAt: true,
+          },
+        },
+      },
+    });
+    if (!ev) throw new NotFoundException('Event not found');
+    return ev;
+  }
 }

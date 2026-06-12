@@ -211,6 +211,7 @@ export class OrdersService {
   }
 
   async mockPay(userId: string, orderId: string, dto: MockPayDto) {
+    let reservationExpired = false;
     const snapshots = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(
         `SELECT id FROM "Order" WHERE id = $1 FOR UPDATE`,
@@ -234,6 +235,7 @@ export class OrdersService {
           where: { id: order.id },
           data: { status: OrderStatus.EXPIRED },
         });
+        reservationExpired = true;
         return loadOrderInventorySnapshotTx(tx, order.id);
       }
 
@@ -265,6 +267,10 @@ export class OrdersService {
 
     for (const s of snapshots) {
       this.inventoryGateway.emitTicketUpdate(s);
+    }
+
+    if (reservationExpired) {
+      throw new GoneException('Reservation expired');
     }
 
     return this.prisma.order.findUnique({
