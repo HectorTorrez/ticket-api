@@ -8,6 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { V } from '../../common/validation-messages';
 
 export class QueryPublishedEventsDto extends PaginationQueryDto {
   @ApiPropertyOptional({ default: true, description: 'Omit or true = published only; false = include drafts (still excludes soft-deleted).' })
@@ -18,22 +19,22 @@ export class QueryPublishedEventsDto extends PaginationQueryDto {
     if (value === false || value === 'false') return false;
     return value;
   })
-  @IsBoolean()
+  @IsBoolean({ message: V.boolean })
   publishedOnly?: boolean = true;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: V.dateString })
   from?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: V.dateString })
   to?: string;
 
   @ApiPropertyOptional({ description: 'Search title/slug' })
   @IsOptional()
-  @IsString()
-  @MaxLength(120)
+  @IsString({ message: V.string })
+  @MaxLength(120, { message: V.maxLength(120) })
   q?: string;
 }

@@ -8,6 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { V } from '../../common/validation-messages';
 
 export class QueryAdminEventsDto extends PaginationQueryDto {
   @ApiPropertyOptional({
@@ -21,22 +22,22 @@ export class QueryAdminEventsDto extends PaginationQueryDto {
     if (value === false || value === 'false') return false;
     return value;
   })
-  @IsBoolean()
+  @IsBoolean({ message: V.boolean })
   published?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: V.dateString })
   from?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: V.dateString })
   to?: string;
 
   @ApiPropertyOptional({ description: 'Search title/slug' })
   @IsOptional()
-  @IsString()
-  @MaxLength(120)
+  @IsString({ message: V.string })
+  @MaxLength(120, { message: V.maxLength(120) })
   q?: string;
 }

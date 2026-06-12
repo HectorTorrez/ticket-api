@@ -22,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   validate(payload: AccessTokenPayload): Express.UserPayload {
     if (!payload.sub || !payload.email || !payload.role) {
-      throw new UnauthorizedException('Invalid token payload');
+      throw new UnauthorizedException('Token inválido');
     }
     return {
       userId: payload.sub,

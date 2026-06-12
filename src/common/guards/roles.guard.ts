@@ -21,10 +21,10 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<{ user?: Express.UserPayload }>();
     const user = request.user;
-    if (!user) throw new ForbiddenException('Missing user context');
+    if (!user) throw new ForbiddenException('Falta el contexto del usuario');
 
     if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Insufficient permissions');
+      throw new ForbiddenException('Permisos insuficientes');
     }
     return true;
   }

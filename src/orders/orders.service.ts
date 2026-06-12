@@ -77,7 +77,7 @@ export class OrdersService {
       where: { id: orderId, userId },
       include: { lines: { include: { ticketType: true } } },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException('Pedido no encontrado');
     return order;
   }
 
@@ -139,23 +139,23 @@ export class OrdersService {
             include: { event: true },
           });
           if (!tt || tt.event.deletedAt) {
-            throw new NotFoundException('Ticket type not found');
+            throw new NotFoundException('Tipo de entrada no encontrado');
           }
           if (!tt.event.published) {
-            throw new BadRequestException('Event is not on sale');
+            throw new BadRequestException('El evento no está a la venta');
           }
           if (tt.saleStartsAt && now < tt.saleStartsAt) {
             throw new BadRequestException(
-              'Sale has not started for this ticket type',
+              'La venta aún no ha comenzado para este tipo de entrada',
             );
           }
           if (tt.saleEndsAt && now > tt.saleEndsAt) {
             throw new BadRequestException(
-              'Sale has ended for this ticket type',
+              'La venta ha finalizado para este tipo de entrada',
             );
           }
           if (tt.quantityRemaining < line.quantity) {
-            throw new ConflictException('Not enough tickets remaining');
+            throw new ConflictException('No quedan suficientes entradas');
           }
 
           total = total.add(tt.price.mul(line.quantity));
@@ -221,12 +221,12 @@ export class OrdersService {
       const order = await tx.order.findUnique({
         where: { id: orderId },
       });
-      if (!order) throw new NotFoundException('Order not found');
+      if (!order) throw new NotFoundException('Pedido no encontrado');
       if (order.userId !== userId)
-        throw new ForbiddenException('Not your order');
+        throw new ForbiddenException('Este pedido no es tuyo');
 
       if (order.status !== OrderStatus.PENDING) {
-        throw new ConflictException('Order is not awaiting payment');
+        throw new ConflictException('El pedido no está pendiente de pago');
       }
 
       if (order.expiresAt < new Date()) {
@@ -270,7 +270,7 @@ export class OrdersService {
     }
 
     if (reservationExpired) {
-      throw new GoneException('Reservation expired');
+      throw new GoneException('La reserva ha expirado');
     }
 
     return this.prisma.order.findUnique({
@@ -290,15 +290,15 @@ export class OrdersService {
 
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order || order.userId !== userId) {
-        throw new NotFoundException('Order not found');
+        throw new NotFoundException('Pedido no encontrado');
       }
 
       if (order.status !== OrderStatus.PENDING) {
-        throw new ConflictException('Only pending orders can be cancelled');
+        throw new ConflictException('Solo se pueden cancelar pedidos pendientes');
       }
 
       if (order.expiresAt < new Date()) {
-        throw new GoneException('Reservation expired');
+        throw new GoneException('La reserva ha expirado');
       }
 
       await restoreReservedInventory(tx, order.id);

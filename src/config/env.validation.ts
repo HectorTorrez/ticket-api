@@ -10,6 +10,7 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_EXPIRES: Joi.string().default('7d'),
   ORDER_RESERVATION_TTL_MINUTES: Joi.number().default(15),
   CORS_ORIGINS: Joi.string().default('http://localhost:3000'),
+  FRONTEND_BASE_URL: Joi.string().uri().default('http://localhost:3000'),
   AWS_REGION: Joi.string().default('us-east-1'),
   AWS_ACCESS_KEY_ID: Joi.string().optional().allow(''),
   AWS_SECRET_ACCESS_KEY: Joi.string().optional().allow(''),

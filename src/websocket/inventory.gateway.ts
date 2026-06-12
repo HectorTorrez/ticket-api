@@ -60,7 +60,7 @@ export class InventoryGateway implements OnGatewayConnection {
     @MessageBody() body: { eventId?: string },
   ) {
     if (!body?.eventId) {
-      return { ok: false, error: 'eventId required' };
+      return { ok: false, error: 'Se requiere eventId' };
     }
     void client.join(`event:${body.eventId}`);
     return { ok: true, room: `event:${body.eventId}` };

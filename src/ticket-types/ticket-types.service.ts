@@ -47,7 +47,7 @@ export class TicketTypesService {
     } catch (e: unknown) {
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
       if (code === 'P2002') {
-        throw new ConflictException('Ticket tier already exists for this event');
+        throw new ConflictException('Ya existe un tipo de entrada para este nivel en el evento');
       }
       throw e;
     }
@@ -59,13 +59,13 @@ export class TicketTypesService {
       include: { event: true },
     });
     if (!existing || existing.event.deletedAt) {
-      throw new NotFoundException('Ticket type not found');
+      throw new NotFoundException('Tipo de entrada no encontrado');
     }
 
     const sold = existing.quantityTotal - existing.quantityRemaining;
     const nextTotal = dto.quantity ?? existing.quantityTotal;
     if (nextTotal < sold) {
-      throw new ConflictException('quantity cannot be below already sold/reserved count');
+      throw new ConflictException('La cantidad no puede ser menor que las entradas vendidas o reservadas');
     }
 
     const nextRemaining = dto.quantity !== undefined ? nextTotal - sold : existing.quantityRemaining;
@@ -103,7 +103,7 @@ export class TicketTypesService {
     } catch (e: unknown) {
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
       if (code === 'P2002') {
-        throw new ConflictException('Ticket tier already exists for this event');
+        throw new ConflictException('Ya existe un tipo de entrada para este nivel en el evento');
       }
       throw e;
     }
@@ -115,10 +115,10 @@ export class TicketTypesService {
       include: { event: true, orderLines: { take: 1 } },
     });
     if (!existing || existing.event.deletedAt) {
-      throw new NotFoundException('Ticket type not found');
+      throw new NotFoundException('Tipo de entrada no encontrado');
     }
     if (existing.orderLines.length > 0) {
-      throw new ConflictException('Ticket type has orders and cannot be deleted');
+      throw new ConflictException('El tipo de entrada tiene pedidos y no puede eliminarse');
     }
 
     await this.prisma.ticketType.delete({ where: { id: ticketTypeId } });

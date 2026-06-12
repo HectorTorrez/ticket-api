@@ -32,7 +32,7 @@ export class EventsService {
     const endsAt = new Date(dto.endsAt);
     const startsAt = new Date(dto.startsAt);
     if (endsAt <= startsAt) {
-      throw new BadRequestException('endsAt must be after startsAt');
+      throw new BadRequestException('La fecha de fin debe ser posterior a la de inicio');
     }
 
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -57,19 +57,19 @@ export class EventsService {
         throw e;
       }
     }
-    throw new ConflictException('Could not allocate unique slug');
+    throw new ConflictException('No se pudo generar un slug único');
   }
 
   async update(eventId: string, dto: UpdateEventDto) {
     const existing = await this.prisma.event.findFirst({
       where: { id: eventId, deletedAt: null },
     });
-    if (!existing) throw new NotFoundException('Event not found');
+    if (!existing) throw new NotFoundException('Evento no encontrado');
 
     const startsAt = dto.startsAt ? new Date(dto.startsAt) : existing.startsAt;
     const endsAt = dto.endsAt ? new Date(dto.endsAt) : existing.endsAt;
     if (endsAt <= startsAt) {
-      throw new BadRequestException('endsAt must be after startsAt');
+      throw new BadRequestException('La fecha de fin debe ser posterior a la de inicio');
     }
 
     try {
@@ -86,7 +86,7 @@ export class EventsService {
       });
     } catch (e: unknown) {
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
-      if (code === 'P2002') throw new ConflictException('Slug already in use');
+      if (code === 'P2002') throw new ConflictException('El slug ya está en uso');
       throw e;
     }
   }
@@ -95,7 +95,7 @@ export class EventsService {
     const existing = await this.prisma.event.findFirst({
       where: { id: eventId, deletedAt: null },
     });
-    if (!existing) throw new NotFoundException('Event not found');
+    if (!existing) throw new NotFoundException('Evento no encontrado');
 
     await this.prisma.event.update({
       where: { id: eventId },
@@ -107,7 +107,7 @@ export class EventsService {
     const existing = await this.prisma.event.findFirst({
       where: { id: eventId, deletedAt: null },
     });
-    if (!existing) throw new NotFoundException('Event not found');
+    if (!existing) throw new NotFoundException('Evento no encontrado');
 
     return this.prisma.event.update({
       where: { id: eventId },
@@ -133,7 +133,7 @@ export class EventsService {
         ticketTypes: true,
       },
     });
-    if (!bySlug) throw new NotFoundException('Event not found');
+    if (!bySlug) throw new NotFoundException('Evento no encontrado');
     return bySlug;
   }
 
@@ -252,7 +252,7 @@ export class EventsService {
     const ev = await this.prisma.event.findFirst({
       where: { id: eventId, deletedAt: null },
     });
-    if (!ev) throw new NotFoundException('Event not found');
+    if (!ev) throw new NotFoundException('Evento no encontrado');
     return ev;
   }
 
@@ -273,7 +273,7 @@ export class EventsService {
         },
       },
     });
-    if (!ev) throw new NotFoundException('Event not found');
+    if (!ev) throw new NotFoundException('Evento no encontrado');
     return ev;
   }
 }

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
+import { V } from '../../common/validation-messages';
 
 export enum MockPayOutcome {
   SUCCESS = 'SUCCESS',
@@ -8,6 +9,6 @@ export enum MockPayOutcome {
 
 export class MockPayDto {
   @ApiProperty({ enum: MockPayOutcome })
-  @IsEnum(MockPayOutcome)
+  @IsEnum(MockPayOutcome, { message: V.enum })
   outcome!: MockPayOutcome;
 }

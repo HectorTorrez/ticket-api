@@ -34,7 +34,7 @@ export class S3Service {
   assertConfigured() {
     if (!this.bucket) {
       throw new ServiceUnavailableException(
-        'File uploads are not configured (missing S3_BUCKET)',
+        'La carga de archivos no está configurada (falta S3_BUCKET)',
       );
     }
   }

@@ -23,7 +23,7 @@ export class AuthService {
 
   async register(email: string, password: string) {
     const existing = await this.usersService.findByEmail(email);
-    if (existing) throw new ConflictException('Email already registered');
+    if (existing) throw new ConflictException('El correo electrónico ya está registrado');
 
     const passwordHash = await argon2.hash(password);
     const user = await this.usersService.createCustomer(email, passwordHash);
@@ -32,10 +32,10 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) throw new UnauthorizedException('Credenciales inválidas');
 
     const valid = await argon2.verify(user.passwordHash, password);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) throw new UnauthorizedException('Credenciales inválidas');
 
     return this.issueTokens(user.id, user.email, user.role);
   }
@@ -48,11 +48,11 @@ export class AuthService {
     });
 
     if (!stored || stored.expiresAt < new Date()) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Token de actualización inválido');
     }
 
     const user = stored.user;
-    if (user.deletedAt) throw new UnauthorizedException('User inactive');
+    if (user.deletedAt) throw new UnauthorizedException('Usuario inactivo');
 
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
 

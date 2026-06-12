@@ -663,7 +663,11 @@ Paginated list of all orders (newest first).
 
 #### `GET /api/v1/tickets/:publicCode/qr`
 
-**Public.** Returns **PNG** image bytes (`Content-Type: image/png`). QR encodes the **plain `publicCode`** string (what scanners should submit to validate).
+**Public.** Returns **PNG** image bytes (`Content-Type: image/png`). QR encodes the ticket **check-in URL**:
+
+`{FRONTEND_BASE_URL}/check/{publicCode}`
+
+Configure `FRONTEND_BASE_URL` (default `http://localhost:3000`) so scans open the frontend check page. Validation still accepts the raw `publicCode` or the full check URL in `POST /qr/validate`.
 
 ---
 
