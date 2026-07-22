@@ -1,0 +1,59 @@
+---
+description: Mandatory ARCHITECTURE.md + Free Tier cost cap (~$120) for AWS MCP.
+alwaysApply: true
+---
+
+# AWS: architecture first, Free Tier second
+
+Source of truth: `ticket-api/ARCHITECTURE.md`.
+
+This account is **student / Free Tier** with about **$120**. Minimize cost, but **never drop or replace** required architecture components to save money.
+
+## Non-negotiable stack (must exist)
+
+| Component | Role |
+|-----------|------|
+| **S3** (frontend) | Static SPA hosting |
+| **CloudFront** | In front of frontend (HTTPS, cache, SPA fallback) |
+| **ALB** | HTTPS entry to API |
+| **ACM** | TLS on ALB and/or CloudFront |
+| **EC2 in Auto Scaling Group** | NestJS API (Docker); ASG is required even if capacity is 1 |
+| **RDS PostgreSQL** | Prisma database |
+| **S3** (assets) | Event banners (separate bucket or clear prefix policy per architecture) |
+| **CloudWatch** | Logs/metrics for ALB, ASG, EC2, RDS |
+
+Traffic must match the doc: Users → CloudFront → S3 frontend; Users → ALB (ACM) → ASG/EC2 → RDS + S3 assets.
+
+**Forbidden substitutions:** no Lambda/API Gateway instead of EC2+ALB; no skipping ALB/ASG/CloudFront/RDS; no putting the API only on a public EC2 without ALB.
+
+## Cost optimization *inside* that stack
+
+1. Before create: estimate monthly cost + Free Tier eligibility; report vs **~$120**.
+2. Region default: **`us-east-1`**. Prefer destroyable IaC (CDK/CloudFormation).
+3. Size down, don’t remove:
+
+| Component | Cheap defaults |
+|-----------|----------------|
+| EC2 / ASG | `t2.micro` or `t3.micro`; **ASG min=1, max=1** until a real sale peak needs more |
+| RDS | `db.t3.micro` / `db.t4g.micro`, **Single-AZ**, ~20 GB, short backup retention |
+| Network | Public subnet for EC2 MVP (architecture allows); **no NAT Gateway** unless user explicitly requires private EC2 |
+| CloudWatch | Retention **3–7 days** |
+| Secrets | SSM Parameter Store over Secrets Manager when possible |
+| Idle | Stop EC2 / stop or destroy RDS when not demoing; delete unused EIPs |
+
+4. Ask the user before anything **outside Free Tier** that is not required by the architecture (WAF, Multi-AZ, Redis, Aurora, larger instances, NAT Gateway).
+
+## Hard bans (extras only — not architecture)
+
+- NAT Gateway, unused EIPs, second load balancers
+- Multi-AZ RDS, Aurora, ElastiCache, OpenSearch, MSK, EKS, Fargate “always on”
+- EC2 larger than Free Tier micro without explicit OK
+- Reserved Instances / Savings Plans / prepaid
+- Multi-region / cross-region replication
+
+## AWS MCP behavior
+
+- Plan against `ARCHITECTURE.md` first; then apply Free Tier sizing.
+- Search Free Tier + pricing before create/update.
+- Least-privilege IAM (instance profile for S3/SSM); no `AdministratorAccess` on app roles.
+- If cost pressure conflicts with a required component, **keep the component** and propose a smaller size or temporary stop — do not omit it.
