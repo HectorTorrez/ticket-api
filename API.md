@@ -52,6 +52,14 @@ All HTTP paths below assume the global prefix **`/api/v1`**. Interactive OpenAPI
 | `GET` | `/tickets/:publicCode` | Minimal ticket payload |
 | `GET` | `/tickets/:publicCode/qr` | PNG QR (`image/png`) |
 
+### Authenticated (any role)
+
+Send **`Authorization: Bearer <accessToken>`**.
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `POST` | `/auth/change-password` | Requires current password; rotates tokens |
+
 ### User / customer (`CUSTOMER`)
 
 Send **`Authorization: Bearer <accessToken>`**. **`403`** if the token’s role is not `CUSTOMER`.
@@ -84,6 +92,7 @@ Send **`Authorization: Bearer <accessToken>`**. **`403`** if the token’s role 
 | `PATCH` | `/ticket-types/:id` | Update ticket type |
 | `DELETE` | `/ticket-types/:id` | Only if unused |
 | `GET` | `/admin/orders` | All orders; optional `status`, `userId` |
+| `POST` | `/admin/users/reset-password` | Issue temporary password by email |
 | `POST` | `/qr/validate` | Gate: scan `publicCode` |
 | `GET` | `/dashboard/summary` | Aggregates |
 
@@ -206,6 +215,48 @@ All under `POST /api/v1/auth`. These are **public** and have **stricter rate lim
 ```
 
 (Idempotent-ish: deletes refresh token row if it exists.)
+
+### `POST /api/v1/auth/change-password`
+
+**Authenticated** (any role). Not public.
+
+**Body**
+
+| Field             | Type   | Rules        |
+| ----------------- | ------ | ------------ |
+| `currentPassword` | string | min length 8 |
+| `newPassword`     | string | min length 8 |
+
+**Response** — same token + user shape as register (new tokens; previous refresh tokens are revoked).
+
+**401** if current password is wrong.
+
+### `POST /api/v1/admin/users/reset-password`
+
+**Admin only.**
+
+**Body**
+
+| Field   | Type   | Rules       |
+| ------- | ------ | ----------- |
+| `email` | string | valid email |
+
+**Response**
+
+```json
+{
+  "temporaryPassword": "<opaque string ≥ 8 chars>",
+  "user": {
+    "id": "<uuid>",
+    "email": "buyer@example.com",
+    "role": "CUSTOMER"
+  }
+}
+```
+
+The temporary password is shown **once**. All refresh tokens for that user are revoked.
+
+**404** if no active user matches the email.
 
 ---
 
