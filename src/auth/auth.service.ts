@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -41,6 +42,46 @@ export class AuthService {
     return this.issueTokens(user.id, user.email, user.role);
   }
 
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new UnauthorizedException('Usuario no autenticado');
+
+    const valid = await argon2.verify(user.passwordHash, currentPassword);
+    if (!valid)
+      throw new UnauthorizedException('Contraseña actual incorrecta');
+
+    if (currentPassword === newPassword) {
+      throw new ConflictException(
+        'La nueva contraseña debe ser distinta a la actual',
+      );
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+    await this.usersService.updatePasswordHash(user.id, passwordHash);
+    await this.usersService.revokeAllRefreshTokens(user.id);
+
+    return this.issueTokens(user.id, user.email, user.role);
+  }
+
+  async adminResetPasswordByEmail(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    const temporaryPassword = this.generateTemporaryPassword();
+    const passwordHash = await argon2.hash(temporaryPassword);
+    await this.usersService.updatePasswordHash(user.id, passwordHash);
+    await this.usersService.revokeAllRefreshTokens(user.id);
+
+    return {
+      temporaryPassword,
+      user: { id: user.id, email: user.email, role: user.role },
+    };
+  }
+
   async refresh(refreshToken: string) {
     const tokenHash = this.hashToken(refreshToken);
     const stored = await this.prisma.refreshToken.findUnique({
@@ -64,6 +105,11 @@ export class AuthService {
     const tokenHash = this.hashToken(refreshToken);
     await this.prisma.refreshToken.deleteMany({ where: { tokenHash } });
     return { loggedOut: true };
+  }
+
+  private generateTemporaryPassword() {
+    // 16 URL-safe chars; always ≥ 8 for login validators
+    return randomBytes(12).toString('base64url').slice(0, 16);
   }
 
   private hashToken(raw: string) {

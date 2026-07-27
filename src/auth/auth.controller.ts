@@ -1,8 +1,10 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -26,6 +28,21 @@ export class AuthController {
   @ApiOperation({ summary: 'Login' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
+  }
+
+  @ApiBearerAuth()
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @Post('change-password')
+  @ApiOperation({ summary: 'Change password for the authenticated user' })
+  changePassword(
+    @CurrentUser() user: Express.UserPayload,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(
+      user.userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 
   @Public()
