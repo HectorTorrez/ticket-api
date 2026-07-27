@@ -137,16 +137,18 @@ async function main() {
     `Pay failed: ${JSON.stringify(paid.body)}`,
   );
 
-  const tickets = await api<Array<{ publicCode: string }>>('/me/tickets', {
+  const tickets = await api<{
+    items: Array<{ publicCode: string }>;
+  }>('/me/tickets', {
     headers: { Authorization: `Bearer ${customerToken}` },
   });
   assert(
     tickets.status === 200 &&
-      Array.isArray(tickets.body) &&
-      tickets.body.length > 0,
+      Array.isArray(tickets.body.items) &&
+      tickets.body.items.length > 0,
     `Tickets failed: ${JSON.stringify(tickets.body)}`,
   );
-  const publicCode = tickets.body[0].publicCode;
+  const publicCode = tickets.body.items[0].publicCode;
 
   const publicCheck = await api(`/tickets/${publicCode}`);
   assert(publicCheck.status === 200, 'Public ticket check failed');
