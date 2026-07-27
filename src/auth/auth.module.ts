@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { UsersModule } from '../users/users.module';
+import { AdminUsersController } from '../users/admin-users.controller';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -26,7 +27,7 @@ import { parseDurationMs } from '../common/duration';
       },
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AdminUsersController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule],
 })
