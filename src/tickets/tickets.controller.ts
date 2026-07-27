@@ -22,6 +22,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { QueryMyTicketsDto } from './dto/query-my-tickets.dto';
 import { TicketsService } from './tickets.service';
 
 @ApiTags('tickets')
@@ -45,8 +46,11 @@ export class TicketsController {
   @UseGuards(RolesGuard)
   @Get('me/tickets')
   @ApiOperation({ summary: 'List tickets for current customer' })
-  listMine(@CurrentUser() user: Express.UserPayload) {
-    return this.ticketsService.listMine(user.userId);
+  listMine(
+    @CurrentUser() user: Express.UserPayload,
+    @Query() query: QueryMyTicketsDto,
+  ) {
+    return this.ticketsService.listMine(user.userId, query);
   }
 
   @Public()

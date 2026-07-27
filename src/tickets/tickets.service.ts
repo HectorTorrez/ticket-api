@@ -1,6 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
+import { paginationSkipTake } from '../common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import type {
+  MyTicketsWhen,
+  QueryMyTicketsDto,
+} from './dto/query-my-tickets.dto';
+
+const myTicketInclude = {
+  event: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      startsAt: true,
+      venue: true,
+    },
+  },
+  ticketType: { select: { tier: true, name: true } },
+} satisfies Prisma.TicketInclude;
 
 @Injectable()
 export class TicketsService {
@@ -38,23 +56,113 @@ export class TicketsService {
     }
   }
 
-  listMine(userId: string) {
-    return this.prisma.ticket.findMany({
-      where: { userId },
-      orderBy: { id: 'desc' },
-      include: {
-        event: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            startsAt: true,
-            venue: true,
-          },
-        },
-        ticketType: { select: { tier: true, name: true } },
-      },
-    });
+  async listMine(userId: string, query: QueryMyTicketsDto) {
+    const when: MyTicketsWhen = query.when ?? 'upcoming';
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const { skip, take } = paginationSkipTake(page, limit);
+    const now = new Date();
+
+    const upcomingWhere = {
+      userId,
+      event: { startsAt: { gte: now } },
+    } satisfies Prisma.TicketWhereInput;
+    const pastWhere = {
+      userId,
+      event: { startsAt: { lt: now } },
+    } satisfies Prisma.TicketWhereInput;
+
+    const [upcoming, past] = await Promise.all([
+      this.prisma.ticket.count({ where: upcomingWhere }),
+      this.prisma.ticket.count({ where: pastWhere }),
+    ]);
+
+    const filteredTotal =
+      when === 'upcoming' ? upcoming : when === 'past' ? past : upcoming + past;
+
+    const items = await this.listMinePage(
+      when,
+      upcomingWhere,
+      pastWhere,
+      skip,
+      take,
+      upcoming,
+    );
+
+    return {
+      items,
+      total: filteredTotal,
+      page,
+      limit,
+      counts: { upcoming, past, total: upcoming + past },
+    };
+  }
+
+  private listMinePage(
+    when: MyTicketsWhen,
+    upcomingWhere: Prisma.TicketWhereInput,
+    pastWhere: Prisma.TicketWhereInput,
+    skip: number,
+    take: number,
+    upcomingCount: number,
+  ) {
+    if (when === 'upcoming') {
+      return this.prisma.ticket.findMany({
+        where: upcomingWhere,
+        orderBy: { event: { startsAt: 'asc' } },
+        skip,
+        take,
+        include: myTicketInclude,
+      });
+    }
+
+    if (when === 'past') {
+      return this.prisma.ticket.findMany({
+        where: pastWhere,
+        orderBy: { event: { startsAt: 'desc' } },
+        skip,
+        take,
+        include: myTicketInclude,
+      });
+    }
+
+    if (skip + take <= upcomingCount) {
+      return this.prisma.ticket.findMany({
+        where: upcomingWhere,
+        orderBy: { event: { startsAt: 'asc' } },
+        skip,
+        take,
+        include: myTicketInclude,
+      });
+    }
+
+    if (skip >= upcomingCount) {
+      return this.prisma.ticket.findMany({
+        where: pastWhere,
+        orderBy: { event: { startsAt: 'desc' } },
+        skip: skip - upcomingCount,
+        take,
+        include: myTicketInclude,
+      });
+    }
+
+    const fromUpcoming = upcomingCount - skip;
+    return Promise.all([
+      this.prisma.ticket.findMany({
+        where: upcomingWhere,
+        orderBy: { event: { startsAt: 'asc' } },
+        skip,
+        take: fromUpcoming,
+        include: myTicketInclude,
+      }),
+      this.prisma.ticket.findMany({
+        where: pastWhere,
+        orderBy: { event: { startsAt: 'desc' } },
+        skip: 0,
+        take: take - fromUpcoming,
+        include: myTicketInclude,
+      }),
+    ]).then(([upcomingItems, pastItems]) => [...upcomingItems, ...pastItems]);
   }
 
   async findPublicTicket(publicCode: string) {
