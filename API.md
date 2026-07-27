@@ -657,34 +657,54 @@ Paginated list of all orders (newest first).
 
 **Auth:** Bearer **`CUSTOMER`**.
 
-**Response** — array of tickets:
+**Query**
+
+| Param | Values | Default | Description |
+|-------|--------|---------|-------------|
+| `when` | `upcoming`, `past`, `all` | `upcoming` | Filter and sort by linked event `startsAt` |
+| `page` | integer ≥ 1 | `1` | Page number |
+| `limit` | 1–100 | `20` | Page size |
+
+**Response**
 
 ```json
-[
-  {
-    "id": "...",
-    "publicCode": "...",
-    "orderLineId": "...",
-    "userId": "...",
-    "eventId": "...",
-    "ticketTypeId": "...",
-    "status": "ACTIVE",
-    "usedAt": null,
-    "validatedByUserId": null,
-    "event": {
+{
+  "items": [
+    {
       "id": "...",
-      "title": "...",
-      "slug": "...",
-      "startsAt": "...",
-      "venue": "..."
-    },
-    "ticketType": {
-      "tier": "GENERAL",
-      "name": "General admission"
+      "publicCode": "...",
+      "orderLineId": "...",
+      "userId": "...",
+      "eventId": "...",
+      "ticketTypeId": "...",
+      "status": "ACTIVE",
+      "usedAt": null,
+      "validatedByUserId": null,
+      "event": {
+        "id": "...",
+        "title": "...",
+        "slug": "...",
+        "startsAt": "...",
+        "venue": "..."
+      },
+      "ticketType": {
+        "tier": "GENERAL",
+        "name": "General admission"
+      }
     }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 20,
+  "counts": {
+    "upcoming": 1,
+    "past": 0,
+    "total": 1
   }
-]
+}
 ```
+
+`total` is the count for the active `when` filter (pagination). `counts` is wallet-wide for tab UI.
 
 ### Public ticket URLs
 
