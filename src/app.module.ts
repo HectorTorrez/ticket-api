@@ -41,6 +41,7 @@ import { WebsocketModule } from './websocket/websocket.module';
     TicketsModule,
     QrModule,
     DashboardModule,
+    WebsocketModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

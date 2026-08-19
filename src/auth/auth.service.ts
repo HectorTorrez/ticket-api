@@ -51,8 +51,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Usuario no autenticado');
 
     const valid = await argon2.verify(user.passwordHash, currentPassword);
-    if (!valid)
-      throw new UnauthorizedException('Contraseña actual incorrecta');
+    if (!valid) throw new UnauthorizedException('Contraseña actual incorrecta');
 
     if (currentPassword === newPassword) {
       throw new ConflictException(

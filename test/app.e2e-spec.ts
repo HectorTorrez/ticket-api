@@ -1,4 +1,9 @@
-import { Controller, Get, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 
@@ -11,7 +16,7 @@ class StubHealthController {
 }
 
 describe('Smoke (e2e)', () => {
-  let app: import('@nestjs/common').INestApplication;
+  let app: INestApplication;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({

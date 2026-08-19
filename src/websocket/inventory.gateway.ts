@@ -11,6 +11,8 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import type { AccessTokenPayload } from '../auth/strategies/jwt.strategy';
+import type { InventorySocketData } from './socket.types';
+import './socket.types';
 
 @WebSocketGateway({
   namespace: '/inventory',
@@ -49,8 +51,9 @@ export class InventoryGateway implements OnGatewayConnection {
         },
       );
 
-      client.data.userId = payload.sub;
-      client.data.role = payload.role;
+      const socketData = client.data as InventorySocketData;
+      socketData.userId = payload.sub;
+      socketData.role = payload.role;
     } catch (err) {
       this.logger.warn(`Socket auth failed: ${(err as Error).message}`);
       client.disconnect(true);

@@ -9,9 +9,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
-import {
-  SortOrder,
-} from '../../common/dto/sort-query.dto';
+import { SortOrder } from '../../common/dto/sort-query.dto';
 import { V } from '../../common/validation-messages';
 
 export enum AdminEventSortField {
@@ -23,7 +21,10 @@ export enum AdminEventSortField {
 }
 
 export class QueryAdminEventsDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ enum: AdminEventSortField, default: AdminEventSortField.startsAt })
+  @ApiPropertyOptional({
+    enum: AdminEventSortField,
+    default: AdminEventSortField.startsAt,
+  })
   @IsOptional()
   @IsEnum(AdminEventSortField, { message: V.enum })
   sortBy?: AdminEventSortField = AdminEventSortField.startsAt;
@@ -37,11 +38,11 @@ export class QueryAdminEventsDto extends PaginationQueryDto {
       'Omit = returns drafts and published. `true` / `false` filter by `published` (query strings use true/false).',
   })
   @IsOptional()
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     if (value === undefined || value === null || value === '') return undefined;
     if (value === true || value === 'true') return true;
     if (value === false || value === 'false') return false;
-    return value;
+    return undefined;
   })
   @IsBoolean({ message: V.boolean })
   published?: boolean;

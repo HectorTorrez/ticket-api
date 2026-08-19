@@ -17,11 +17,11 @@ export class QueryPublishedEventsDto extends PaginationQueryDto {
       'Omit or true = published only; false = include drafts (still excludes soft-deleted).',
   })
   @IsOptional()
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     if (value === undefined || value === null || value === '') return undefined;
     if (value === true || value === 'true') return true;
     if (value === false || value === 'false') return false;
-    return value;
+    return undefined;
   })
   @IsBoolean({ message: V.boolean })
   publishedOnly?: boolean = true;
