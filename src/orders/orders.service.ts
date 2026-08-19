@@ -17,6 +17,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { MockPayDto, MockPayOutcome } from './dto/mock-pay.dto';
 import { QueryAdminOrdersDto } from './dto/query-admin-orders.dto';
 import { QueryMyOrdersDto } from './dto/query-my-orders.dto';
+import { adminOrdersOrderBy } from './admin-orders-order-by.util';
 import {
   loadOrderInventorySnapshotTx,
   restoreReservedInventory,
@@ -91,7 +92,7 @@ export class OrdersService {
     return Promise.all([
       this.prisma.order.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: adminOrdersOrderBy(query),
         skip,
         take,
         include: {
