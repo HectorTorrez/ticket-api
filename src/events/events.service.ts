@@ -10,6 +10,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { QueryAdminEventsDto } from './dto/query-admin-events.dto';
 import { QueryPublishedEventsDto } from './dto/query-published-events.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { adminEventsOrderBy } from './admin-events-order-by.util';
 import { randomBytes } from 'crypto';
 
 function slugify(title: string) {
@@ -235,7 +236,7 @@ export class EventsService {
     const [items, total] = await Promise.all([
       this.prisma.event.findMany({
         where,
-        orderBy: { startsAt: 'asc' },
+        orderBy: adminEventsOrderBy(query),
         skip,
         take,
         include: {
