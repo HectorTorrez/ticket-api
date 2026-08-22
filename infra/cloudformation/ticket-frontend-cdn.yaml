@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudFront + OAC for Tide Tickets frontend (S3 static SPA)
+
+Parameters:
+  FrontendBucketName:
+    Type: String
+    Default: tidetickets-frontend-180294216289
+  CertificateArn:
+    Type: String
+    Default: arn:aws:acm:us-east-1:180294216289:certificate/3786ab52-2089-4fc7-9383-28b084d3949e
+
+Resources:
+  FrontendOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: tidetickets-frontend-oac
+        Description: OAC for Tide Tickets frontend bucket
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Tide Tickets frontend SPA
+        HttpVersion: http2and3
+        DefaultRootObject: index.html
+        Aliases:
+          - tidetickets.com
+          - www.tidetickets.com
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: S3Frontend
+            DomainName: !Sub "${FrontendBucketName}.s3.${AWS::Region}.amazonaws.com"
+            OriginAccessControlId: !GetAtt FrontendOAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: S3Frontend
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucketName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${FrontendBucketName}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+
+Outputs:
+  CloudFrontDomainName:
+    Description: CloudFront distribution domain (CNAME target for www / apex)
+    Value: !GetAtt FrontendDistribution.DomainName
+  CloudFrontDistributionId:
+    Description: Set as GitHub repository variable CLOUDFRONT_DISTRIBUTION_ID
+    Value: !Ref FrontendDistribution

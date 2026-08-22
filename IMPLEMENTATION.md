@@ -355,48 +355,81 @@ Without `S3_BUCKET`, the API returns **503** with a clear message — the rest o
 
 ## 10. CI/CD with GitHub Actions
 
-Each repository includes `.github/workflows/ci.yml` that runs on push/PR to `main`:
+Each repository includes:
 
-| Repo | CI steps |
-|------|----------|
-| **ticket-api** | `pnpm install` → `prisma generate` → `build` → `test:e2e` (with Postgres service) |
-| **ticket-frontend** | `pnpm install` → `build` |
+| Repo | Workflows |
+|------|-----------|
+| **ticket-api** | `ci.yml` — lint, build, migrate, unit + e2e tests |
+| **ticket-api** | `deploy.yml` — after CI passes on `main`: Docker → ECR → ASG instance refresh |
+| **ticket-frontend** | `ci.yml` — lint, build, tests |
+| **ticket-frontend** | `deploy.yml` — after CI passes on `main`: build → S3 sync → CloudFront invalidation |
 
-### Enable CI on GitHub
+Deploy workflows also support **Run workflow** (`workflow_dispatch`) for manual releases.
 
-1. Push both repos to GitHub (already at `HectorTorrez/ticket-api` and `HectorTorrez/ticket-frontend`).
-2. Open **Actions** tab — workflows run automatically on the next push.
-3. Add branch protection on `main` (optional): require CI to pass before merge.
+### GitHub secrets (both repos)
 
-No AWS secrets are required for CI — it only validates build and smoke tests.
+Create an IAM user (e.g. `github-actions-deploy`) with the policy in [`infra/github-actions-deploy-policy.json`](./infra/github-actions-deploy-policy.json), then add these **repository secrets**:
+
+| Secret | Value |
+|--------|--------|
+| `AWS_ACCESS_KEY_ID` | IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+
+Region and resource names are set in each workflow (`us-east-1`, bucket `tidetickets-frontend-180294216289`, ECR repo `ticket-api`, ASG `ticket-api-asg`).
+
+### GitHub variable (frontend only)
+
+After deploying CloudFront (see below), set in **ticket-frontend** → Settings → Secrets and variables → Actions → **Variables**:
+
+| Variable | Value |
+|----------|--------|
+| `CLOUDFRONT_DISTRIBUTION_ID` | Output `CloudFrontDistributionId` from stack `ticket-frontend-cdn-prod` |
+
+### CloudFront stack (one-time)
+
+```bash
+aws cloudformation deploy \
+  --region us-east-1 \
+  --stack-name ticket-frontend-cdn-prod \
+  --template-file infra/cloudformation/ticket-frontend-cdn.yaml \
+  --parameter-overrides FrontendBucketName=tidetickets-frontend-180294216289
+```
+
+Then in **Cloudflare** (DNS only / grey cloud):
+
+| Name | Type | Target |
+|------|------|--------|
+| `www` | CNAME | CloudFront domain from stack output |
+| `@` | CNAME | Same CloudFront domain (or redirect apex → www) |
+| `api` | CNAME | ALB DNS (`ticket-api-alb-….elb.amazonaws.com`) |
+
+### First deploy
+
+1. Add GitHub secrets to **both** repositories.
+2. Push to `main` (or run **Deploy API** / **Deploy Frontend** manually from Actions).
+3. API: wait ~5 min for ASG instance refresh; check `https://api.tidetickets.com/api/v1/health`.
+4. Frontend: open `https://www.tidetickets.com` after DNS propagates.
+
+CI alone does not need AWS credentials — only the deploy workflows do.
 
 ---
 
-## 11. Future CI/CD to AWS (manual today)
+## 11. Deploy workflow details
 
-When you are ready to auto-deploy, extend the workflows:
+### API (`deploy.yml`)
 
-### API pipeline (sketch)
+1. Triggers when **CI** completes successfully on `main`, or via manual dispatch.
+2. Builds Docker image and pushes to ECR (`ticket-api:latest` + commit SHA tag).
+3. Starts ASG instance refresh on `ticket-api-asg` (Prisma migrate runs in container entrypoint).
 
-```yaml
-# On push to main, after CI passes:
-# 1. docker build & push to ECR
-# 2. Update ECS service OR trigger ASG instance refresh with new AMI
-# 3. Run prisma migrate deploy (entrypoint already does this)
-```
+### Frontend (`deploy.yml`)
 
-**GitHub secrets needed:** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, ECR repository URL.
+1. Builds with `VITE_API_BASE_URL=https://api.tidetickets.com`.
+2. Runs `scripts/export-spa-shell.sh` to write `index.html` for S3/CloudFront SPA routing.
+3. Syncs `.output/public/` to `tidetickets-frontend-180294216289`.
+4. Invalidates CloudFront when `CLOUDFRONT_DISTRIBUTION_ID` is set.
 
-### Frontend pipeline (sketch)
-
-```yaml
-# On push to main:
-# 1. pnpm build with VITE_API_BASE_URL secret
-# 2. aws s3 sync .output/public s3://ticket-frontend-prod --delete
-# 3. aws cloudfront create-invalidation ...
-```
-
-Or deploy the Nitro server image to ECS/Fargate instead of S3 sync.
+Long term, switch Nitro to a native **static** preset when TanStack Start + Vite 8 support stabilizes; until then the shell export script is the production path for S3 hosting.
 
 ---
 
