@@ -7,7 +7,8 @@
       "Action": [
         "ec2:Describe*",
         "elasticloadbalancing:Describe*",
-        "autoscaling:Describe*"
+        "autoscaling:Describe*",
+        "application-autoscaling:Describe*"
       ],
       "Resource": "*"
     },
@@ -21,20 +22,32 @@
       "Resource": "*"
     },
     {
-      "Sid": "FrontendAndAssetsS3Read",
+      "Sid": "S3AccountLevelRead",
       "Effect": "Allow",
       "Action": [
         "s3:ListAllMyBuckets",
-        "s3:GetBucketLocation",
-        "s3:GetBucketPolicy",
-        "s3:GetBucketTagging",
-        "s3:GetBucketWebsite",
-        "s3:ListBucket"
+        "s3:GetAccountPublicAccessBlock"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ArchitectureBucketsRead",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:ListBucketVersions",
+        "s3:ListBucketMultipartUploads",
+        "s3:GetBucket*"
       ],
       "Resource": [
         "arn:aws:s3:::tidetickets-frontend-180294216289",
+        "arn:aws:s3:::tidetickets-frontend-180294216289/*",
         "arn:aws:s3:::tidetickets-assets-180294216289",
-        "arn:aws:s3:::ticket-alb-access-logs-180294216289"
+        "arn:aws:s3:::tidetickets-assets-180294216289/*",
+        "arn:aws:s3:::tidetickets-alb-logs-180294216289",
+        "arn:aws:s3:::tidetickets-alb-logs-180294216289/*",
+        "arn:aws:s3:::tidetickets-cloudtrail-180294216289",
+        "arn:aws:s3:::tidetickets-cloudtrail-180294216289/*"
       ]
     },
     {
@@ -59,7 +72,40 @@
         "logs:Describe*",
         "logs:Get*",
         "logs:FilterLogEvents",
-        "logs:List*"
+        "logs:List*",
+        "logs:StartQuery",
+        "logs:GetQueryResults",
+        "logs:StopQuery"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "GovernanceAndAuditRead",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:Describe*",
+        "cloudtrail:Get*",
+        "cloudtrail:List*",
+        "cloudtrail:LookupEvents",
+        "access-analyzer:List*",
+        "access-analyzer:Get*",
+        "access-analyzer:ValidatePolicy",
+        "budgets:ViewBudget",
+        "budgets:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CostExplorerRead",
+      "Effect": "Allow",
+      "Action": [
+        "ce:Describe*",
+        "ce:Get*",
+        "ce:List*",
+        "aws-portal:ViewBilling",
+        "account:GetAccountInformation",
+        "account:GetContactInformation",
+        "account:GetAlternateContact"
       ],
       "Resource": "*"
     },
@@ -71,6 +117,7 @@
         "cloudformation:List*",
         "cloudformation:GetTemplate",
         "cloudformation:GetTemplateSummary",
+        "cloudformation:EstimateTemplateCost",
         "ecr:Describe*",
         "ecr:List*",
         "ecr:GetAuthorizationToken"
@@ -78,16 +125,59 @@
       "Resource": "*"
     },
     {
-      "Sid": "IamRolesForArchitectureDiagram",
+      "Sid": "SsmMetadataRead",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeParameters",
+        "ssm:DescribeInstanceInformation",
+        "ssm:DescribeInstanceAssociationsStatus",
+        "ssm:ListTagsForResource",
+        "ssm:ListDocuments",
+        "ssm:DescribeDocument"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "KmsMetadataRead",
+      "Effect": "Allow",
+      "Action": [
+        "kms:DescribeKey",
+        "kms:ListAliases",
+        "kms:ListKeys",
+        "kms:GetKeyRotationStatus",
+        "kms:GetKeyPolicy",
+        "kms:ListResourceTags"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IamArchitectureRead",
       "Effect": "Allow",
       "Action": [
         "iam:GetRole",
-        "iam:GetInstanceProfile",
-        "iam:ListAttachedRolePolicies",
-        "iam:ListRolePolicies",
+        "iam:GetUser",
         "iam:GetPolicy",
         "iam:GetPolicyVersion",
-        "iam:ListInstanceProfiles"
+        "iam:GetInstanceProfile",
+        "iam:GetOpenIDConnectProvider",
+        "iam:ListRoles",
+        "iam:ListUsers",
+        "iam:ListPolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedUserPolicies",
+        "iam:ListUserPolicies",
+        "iam:ListInstanceProfiles",
+        "iam:ListInstanceProfilesForRole",
+        "iam:ListOpenIDConnectProviders",
+        "iam:ListMFADevices",
+        "iam:ListRoleTags",
+        "iam:ListUserTags",
+        "iam:ListPolicyTags",
+        "iam:SimulatePrincipalPolicy",
+        "iam:GetAccountSummary",
+        "iam:ListAccountAliases",
+        "iam:GetAccountPasswordPolicy"
       ],
       "Resource": "*"
     },
@@ -96,9 +186,13 @@
       "Effect": "Allow",
       "Action": [
         "tag:GetResources",
+        "tag:GetTagKeys",
+        "tag:GetTagValues",
         "resource-explorer-2:Search",
         "resource-explorer-2:ListViews",
-        "resource-explorer-2:GetView"
+        "resource-explorer-2:GetView",
+        "resource-explorer-2:ListIndexes",
+        "resource-explorer-2:GetIndex"
       ],
       "Resource": "*"
     },
@@ -106,16 +200,23 @@
       "Sid": "ConsoleSelfService",
       "Effect": "Allow",
       "Action": [
-        "iam:GetUser",
         "iam:GetLoginProfile",
         "iam:ChangePassword",
         "iam:CreateAccessKey",
         "iam:DeleteAccessKey",
         "iam:ListAccessKeys",
         "iam:UpdateAccessKey",
+        "iam:CreateVirtualMFADevice",
+        "iam:EnableMFADevice",
+        "iam:ResyncMFADevice",
+        "iam:DeactivateMFADevice",
+        "iam:DeleteVirtualMFADevice",
         "sts:GetCallerIdentity"
       ],
-      "Resource": "arn:aws:iam::180294216289:user/architecture-viewer"
+      "Resource": [
+        "arn:aws:iam::180294216289:user/architecture-viewer",
+        "arn:aws:iam::180294216289:mfa/architecture-viewer"
+      ]
     },
     {
       "Sid": "DenySecretsAndMutations",
@@ -124,19 +225,35 @@
         "ssm:GetParameter",
         "ssm:GetParameters",
         "ssm:GetParametersByPath",
+        "ssm:GetParameterHistory",
         "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret",
         "rds:DownloadDBLogFilePortion",
         "ec2:RunInstances",
         "ec2:TerminateInstances",
         "ec2:StartInstances",
         "ec2:StopInstances",
+        "ec2:GetPasswordData",
+        "ec2:GetConsoleOutput",
+        "ec2:GetConsoleScreenshot",
+        "s3:GetObject",
         "s3:PutObject",
         "s3:DeleteObject",
         "cloudformation:CreateStack",
         "cloudformation:UpdateStack",
         "cloudformation:DeleteStack",
+        "cloudformation:ExecuteChangeSet",
         "autoscaling:SetDesiredCapacity",
-        "autoscaling:UpdateAutoScalingGroup"
+        "autoscaling:UpdateAutoScalingGroup",
+        "autoscaling:StartInstanceRefresh",
+        "autoscaling:CancelInstanceRefresh",
+        "cloudtrail:StopLogging",
+        "cloudtrail:DeleteTrail",
+        "cloudtrail:PutEventSelectors",
+        "cloudtrail:UpdateTrail",
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:GenerateDataKey*"
       ],
       "Resource": "*"
     }

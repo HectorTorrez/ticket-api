@@ -17,7 +17,7 @@ else
   POLICY_ARN="$(aws iam create-policy \
     --policy-name "${POLICY_NAME}" \
     --policy-document "file://${POLICY_FILE}" \
-    --description "Read-only access to Tide Tickets architecture (VPC, ALB, ASG, RDS, S3, CloudFront, CloudWatch)" \
+    --description "Read-only access to Tide Tickets architecture (VPC, ALB, ASG, RDS, S3, CloudFront, CloudWatch, CloudTrail, Access Analyzer, Budgets)" \
     --query Policy.Arn \
     --output text)"
   echo "    Created: ${POLICY_ARN}"
