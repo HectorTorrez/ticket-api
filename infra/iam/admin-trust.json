@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowPrincipalWithMFA",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::180294216289:user/principal"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "Bool": {
+          "aws:MultiFactorAuthPresent": "true"
+        }
+      }
+    }
+  ]
+}

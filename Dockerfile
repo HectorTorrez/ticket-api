@@ -27,6 +27,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/scripts/seed-prod.cjs ./scripts/seed-prod.cjs
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x docker-entrypoint.sh && chown -R nestjs:nodejs /app

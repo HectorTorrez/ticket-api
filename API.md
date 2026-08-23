@@ -92,7 +92,12 @@ Send **`Authorization: Bearer <accessToken>`**. **`403`** if the token’s role 
 | `PATCH` | `/ticket-types/:id` | Update ticket type |
 | `DELETE` | `/ticket-types/:id` | Only if unused |
 | `GET` | `/admin/orders` | All orders; optional `status`, `userId` |
+| `GET` | `/admin/users` | List accounts; optional `q`, `role`, `status` |
+| `POST` | `/admin/users` | Create an admin; returns a temporary password |
 | `POST` | `/admin/users/reset-password` | Issue temporary password by email |
+| `POST` | `/admin/users/:id/reset-password` | Issue temporary password by user id |
+| `PATCH` | `/admin/users/:id/status` | `ACTIVE` / `SUSPENDED` / `BANNED` |
+| `DELETE` | `/admin/users/:id` | Soft-delete; revokes sessions |
 | `POST` | `/qr/validate` | Gate: scan `publicCode` |
 | `GET` | `/dashboard/summary` | Aggregates |
 
@@ -113,6 +118,7 @@ Use these literals in JSON and TypeScript types.
 | Enum          | Values |
 | ------------- | ------ |
 | `UserRole`    | `ADMIN`, `CUSTOMER` |
+| `UserStatus`  | `ACTIVE`, `SUSPENDED`, `BANNED` |
 | `OrderStatus` | `PENDING`, `PAID`, `FAILED`, `EXPIRED`, `CANCELLED` |
 | `TicketStatus`| `ACTIVE`, `USED`, `CANCELLED` |
 | `TicketTier`  | `GENERAL`, `VIP`, `EARLY_BIRD` |
@@ -231,6 +237,57 @@ All under `POST /api/v1/auth`. These are **public** and have **stricter rate lim
 
 **401** if current password is wrong.
 
+### `GET /api/v1/admin/users`
+
+**Admin only.** Paginated list of non-deleted accounts.
+
+**Query**
+
+| Param        | Type   | Notes                                      |
+| ------------ | ------ | ------------------------------------------ |
+| `page`       | int    | default 1                                  |
+| `limit`      | int    | default 20, max 100                        |
+| `q`          | string | email contains (case-insensitive)          |
+| `role`       | enum   | `ADMIN` / `CUSTOMER`                       |
+| `status`     | enum   | `ACTIVE` / `SUSPENDED` / `BANNED`          |
+| `sortBy`     | enum   | `email`, `role`, `status`, `createdAt`, `orderCount` |
+| `sortOrder`  | enum   | `asc` / `desc` (default `desc`)            |
+
+**Response**
+
+```json
+{
+  "items": [
+    {
+      "id": "<uuid>",
+      "email": "buyer@example.com",
+      "role": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-08-22T12:00:00.000Z",
+      "updatedAt": "2026-08-22T12:00:00.000Z",
+      "orderCount": 2
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 20
+}
+```
+
+### `POST /api/v1/admin/users`
+
+**Admin only.** Creates an **ADMIN** account and returns a temporary password shown **once**.
+
+**Body**
+
+| Field   | Type   | Rules       |
+| ------- | ------ | ----------- |
+| `email` | string | valid email |
+
+**Response** — same shape as reset-password (`temporaryPassword` + `user` with `role: "ADMIN"`).
+
+**409** if the email is already registered, including a soft-deleted account.
+
 ### `POST /api/v1/admin/users/reset-password`
 
 **Admin only.**
@@ -257,6 +314,32 @@ All under `POST /api/v1/auth`. These are **public** and have **stricter rate lim
 The temporary password is shown **once**. All refresh tokens for that user are revoked.
 
 **404** if no active user matches the email.
+
+### `POST /api/v1/admin/users/:id/reset-password`
+
+**Admin only.** Same response as reset-by-email. **404** if the user is missing or soft-deleted.
+
+### `PATCH /api/v1/admin/users/:id/status`
+
+**Admin only.**
+
+**Body**
+
+| Field    | Type   | Rules                                      |
+| -------- | ------ | ------------------------------------------ |
+| `status` | enum   | `ACTIVE`, `SUSPENDED`, or `BANNED`         |
+
+Returns the updated admin user row (`id`, `email`, `role`, `status`, `createdAt`, `updatedAt`, `orderCount`).
+
+- `SUSPENDED` / `BANNED` revoke refresh tokens. Login and token refresh fail until the account is `ACTIVE` again.
+- An access token already issued may remain valid until it expires (default **15m**).
+- **403** if you target your own account, or if the action would leave no active admin.
+
+### `DELETE /api/v1/admin/users/:id`
+
+**Admin only.** Soft-deletes the account and revokes refresh tokens. Returns `{ "deleted": true }`.
+
+**403** if you delete yourself or the last active admin. **404** if already deleted.
 
 ---
 

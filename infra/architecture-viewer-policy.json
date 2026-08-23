@@ -1,0 +1,144 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VpcAndComputeRead",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "elasticloadbalancing:Describe*",
+        "autoscaling:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DataLayerRead",
+      "Effect": "Allow",
+      "Action": [
+        "rds:Describe*",
+        "rds:List*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "FrontendAndAssetsS3Read",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketTagging",
+        "s3:GetBucketWebsite",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::tidetickets-frontend-180294216289",
+        "arn:aws:s3:::tidetickets-assets-180294216289",
+        "arn:aws:s3:::ticket-alb-access-logs-180294216289"
+      ]
+    },
+    {
+      "Sid": "CdnAndTlsRead",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:List*",
+        "cloudfront:Get*",
+        "acm:List*",
+        "acm:Describe*",
+        "acm:GetCertificate"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ObservabilityRead",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:Describe*",
+        "cloudwatch:Get*",
+        "cloudwatch:List*",
+        "logs:Describe*",
+        "logs:Get*",
+        "logs:FilterLogEvents",
+        "logs:List*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IaCAndRegistryRead",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:Describe*",
+        "cloudformation:List*",
+        "cloudformation:GetTemplate",
+        "cloudformation:GetTemplateSummary",
+        "ecr:Describe*",
+        "ecr:List*",
+        "ecr:GetAuthorizationToken"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IamRolesForArchitectureDiagram",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:GetInstanceProfile",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListInstanceProfiles"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ResourceExplorerAndTags",
+      "Effect": "Allow",
+      "Action": [
+        "tag:GetResources",
+        "resource-explorer-2:Search",
+        "resource-explorer-2:ListViews",
+        "resource-explorer-2:GetView"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ConsoleSelfService",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetUser",
+        "iam:GetLoginProfile",
+        "iam:ChangePassword",
+        "iam:CreateAccessKey",
+        "iam:DeleteAccessKey",
+        "iam:ListAccessKeys",
+        "iam:UpdateAccessKey",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "arn:aws:iam::180294216289:user/architecture-viewer"
+    },
+    {
+      "Sid": "DenySecretsAndMutations",
+      "Effect": "Deny",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "secretsmanager:GetSecretValue",
+        "rds:DownloadDBLogFilePortion",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteStack",
+        "autoscaling:SetDesiredCapacity",
+        "autoscaling:UpdateAutoScalingGroup"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

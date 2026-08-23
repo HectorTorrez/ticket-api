@@ -8,6 +8,18 @@ Parameters:
   CertificateArn:
     Type: String
     Default: arn:aws:acm:us-east-1:180294216289:certificate/3786ab52-2089-4fc7-9383-28b084d3949e
+  TagOwner:
+    Type: String
+    Default: equipo-plataforma
+  TagEnvironment:
+    Type: String
+    Default: prod
+  TagCostCenter:
+    Type: String
+    Default: CC-4820
+  TagDataClassification:
+    Type: String
+    Default: internal
 
 Resources:
   FrontendOAC:
@@ -63,6 +75,17 @@ Resources:
             ResponseCode: 200
             ResponsePagePath: /index.html
             ErrorCachingMinTTL: 0
+      Tags:
+        - Key: Name
+          Value: tidetickets-frontend-cdn
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   FrontendBucketPolicy:
     Type: AWS::S3::BucketPolicy

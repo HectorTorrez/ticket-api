@@ -30,6 +30,18 @@ Parameters:
   CorsOrigins:
     Type: String
     Default: https://www.tidetickets.com,https://tidetickets.com
+  TagOwner:
+    Type: String
+    Default: equipo-plataforma
+  TagEnvironment:
+    Type: String
+    Default: prod
+  TagCostCenter:
+    Type: String
+    Default: CC-4820
+  TagDataClassification:
+    Type: String
+    Default: confidential
 
 Conditions:
   HasIssuedCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
@@ -61,6 +73,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-vpc
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -68,6 +88,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-igw
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -87,6 +115,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-public-1
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -100,6 +136,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-public-2
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -112,6 +156,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-private-1
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -124,6 +176,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-private-2
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -132,6 +192,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-public-rt
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -160,6 +228,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-private-rt
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -190,6 +266,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-alb-sg
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   Ec2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -204,6 +288,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-ec2-sg
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   RdsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -218,6 +310,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-rds-sg
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   DbSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -229,6 +329,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-db-subnets
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   TicketDatabase:
     Type: AWS::RDS::DBInstance
@@ -255,6 +363,14 @@ Resources:
       Tags:
         - Key: Name
           Value: ticket-api-db
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   ApiTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -274,6 +390,17 @@ Resources:
           Value: "true"
         - Key: stickiness.type
           Value: lb_cookie
+      Tags:
+        - Key: Name
+          Value: ticket-api-tg
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -294,6 +421,17 @@ Resources:
         - !Ref PublicSubnet2
       SecurityGroups:
         - !Ref AlbSecurityGroup
+      Tags:
+        - Key: Name
+          Value: ticket-api-alb
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   HttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -302,8 +440,14 @@ Resources:
       Port: 80
       Protocol: HTTP
       DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref ApiTargetGroup
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: "443"
+            Host: "#{host}"
+            Path: "/#{path}"
+            Query: "#{query}"
+            StatusCode: HTTP_301
 
   HttpsListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -321,6 +465,17 @@ Resources:
   Ec2InstanceRole:
     Type: AWS::IAM::Role
     Properties:
+      Tags:
+        - Key: Name
+          Value: ticket-api-ec2-role
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -361,6 +516,13 @@ Resources:
                   - ssm:GetParameter
                   - ssm:GetParameters
                 Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ticket-api/*
+              - Sid: DenyRequestsOutsideUsEast1
+                Effect: Deny
+                Action: "*"
+                Resource: "*"
+                Condition:
+                  StringNotEquals:
+                    aws:RequestedRegion: us-east-1
 
   Ec2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -390,18 +552,20 @@ Resources:
             systemctl enable docker
             systemctl start docker
             aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
-            DB_HOST="${TicketDatabase.Endpoint.Address}"
+            DATABASE_URL=$(aws ssm get-parameter --name /ticket-api/database-url --with-decryption --query Parameter.Value --output text --region ${AWS::Region})
+            JWT_ACCESS_SECRET=$(aws ssm get-parameter --name /ticket-api/jwt-access-secret --with-decryption --query Parameter.Value --output text --region ${AWS::Region})
+            JWT_REFRESH_SECRET=$(aws ssm get-parameter --name /ticket-api/jwt-refresh-secret --with-decryption --query Parameter.Value --output text --region ${AWS::Region})
             docker pull ${EcrImageUri}
             docker rm -f ticket-api || true
             docker run -d --name ticket-api --restart unless-stopped -p 3000:3000 \
               --log-driver=awslogs \
               --log-opt awslogs-group=/ticket-api/ec2 \
               --log-opt awslogs-region=${AWS::Region} \
-              --log-opt awslogs-stream-prefix=ticket-api \
+              --log-opt awslogs-stream=ticket-api \
               -e NODE_ENV=production \
-              -e DATABASE_URL="postgresql://ticketadmin:${DbPassword}@${TicketDatabase.Endpoint.Address}:5432/ticket_api?schema=public" \
-              -e JWT_ACCESS_SECRET="${JwtAccessSecret}" \
-              -e JWT_REFRESH_SECRET="${JwtRefreshSecret}" \
+              -e DATABASE_URL="$DATABASE_URL" \
+              -e JWT_ACCESS_SECRET="$JWT_ACCESS_SECRET" \
+              -e JWT_REFRESH_SECRET="$JWT_REFRESH_SECRET" \
               -e CORS_ORIGINS="${CorsOrigins}" \
               -e FRONTEND_BASE_URL="${FrontendBaseUrl}" \
               -e S3_BUCKET="${AssetsBucketName}" \
@@ -430,12 +594,35 @@ Resources:
         - Key: Name
           Value: ticket-api
           PropagateAtLaunch: true
+        - Key: owner
+          Value: !Ref TagOwner
+          PropagateAtLaunch: true
+        - Key: environment
+          Value: !Ref TagEnvironment
+          PropagateAtLaunch: true
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+          PropagateAtLaunch: true
+        - Key: data-classification
+          Value: !Ref TagDataClassification
+          PropagateAtLaunch: true
 
   ApiLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /ticket-api/ec2
       RetentionInDays: 7
+      Tags:
+        - Key: Name
+          Value: ticket-api-logs
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   AlbAccessLogsBucket:
     Type: AWS::S3::Bucket
@@ -454,6 +641,17 @@ Resources:
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerPreferred
+      Tags:
+        - Key: Name
+          Value: ticket-alb-logs
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
 
   AlbAccessLogsBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -483,6 +681,17 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: ticket-api-alb-target-5xx
+      Tags:
+        - Key: Name
+          Value: ticket-alb-5xx-alarm
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
       AlarmDescription: ALB target 5xx responses
       Namespace: AWS/ApplicationELB
       MetricName: HTTPCode_Target_5XX_Count
@@ -502,6 +711,17 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: ticket-api-alb-unhealthy-hosts
+      Tags:
+        - Key: Name
+          Value: ticket-alb-unhealthy-alarm
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
       AlarmDescription: Unhealthy targets behind ALB
       Namespace: AWS/ApplicationELB
       MetricName: UnHealthyHostCount
@@ -521,6 +741,17 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: ticket-api-rds-cpu
+      Tags:
+        - Key: Name
+          Value: ticket-rds-cpu-alarm
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
       AlarmDescription: RDS CPU utilization high
       Namespace: AWS/RDS
       MetricName: CPUUtilization
@@ -538,6 +769,17 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: ticket-api-rds-free-storage
+      Tags:
+        - Key: Name
+          Value: ticket-rds-storage-alarm
+        - Key: owner
+          Value: !Ref TagOwner
+        - Key: environment
+          Value: !Ref TagEnvironment
+        - Key: cost-center
+          Value: !Ref TagCostCenter
+        - Key: data-classification
+          Value: !Ref TagDataClassification
       AlarmDescription: RDS free storage below 2 GB
       Namespace: AWS/RDS
       MetricName: FreeStorageSpace

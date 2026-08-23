@@ -11,6 +11,7 @@ import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { parseDurationMs } from '../common/duration';
+import { UserStatus } from '../generated/prisma/enums';
 import type { AccessTokenPayload } from './strategies/jwt.strategy';
 
 @Injectable()
@@ -38,6 +39,8 @@ export class AuthService {
 
     const valid = await argon2.verify(user.passwordHash, password);
     if (!valid) throw new UnauthorizedException('Credenciales inválidas');
+
+    this.assertAccountUsable(user.status);
 
     return this.issueTokens(user.id, user.email, user.role);
   }
@@ -69,12 +72,19 @@ export class AuthService {
   async adminResetPasswordByEmail(email: string) {
     const user = await this.usersService.findByEmail(email);
     if (!user) throw new NotFoundException('Usuario no encontrado');
+    return this.resetPasswordForUser(user);
+  }
 
+  async adminResetPasswordById(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return this.resetPasswordForUser(user);
+  }
+
+  async adminCreateAdmin(email: string) {
     const temporaryPassword = this.generateTemporaryPassword();
     const passwordHash = await argon2.hash(temporaryPassword);
-    await this.usersService.updatePasswordHash(user.id, passwordHash);
-    await this.usersService.revokeAllRefreshTokens(user.id);
-
+    const user = await this.usersService.createAdmin(email, passwordHash);
     return {
       temporaryPassword,
       user: { id: user.id, email: user.email, role: user.role },
@@ -94,6 +104,7 @@ export class AuthService {
 
     const user = stored.user;
     if (user.deletedAt) throw new UnauthorizedException('Usuario inactivo');
+    this.assertAccountUsable(user.status);
 
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
 
@@ -104,6 +115,31 @@ export class AuthService {
     const tokenHash = this.hashToken(refreshToken);
     await this.prisma.refreshToken.deleteMany({ where: { tokenHash } });
     return { loggedOut: true };
+  }
+
+  private async resetPasswordForUser(user: {
+    id: string;
+    email: string;
+    role: AccessTokenPayload['role'];
+  }) {
+    const temporaryPassword = this.generateTemporaryPassword();
+    const passwordHash = await argon2.hash(temporaryPassword);
+    await this.usersService.updatePasswordHash(user.id, passwordHash);
+    await this.usersService.revokeAllRefreshTokens(user.id);
+
+    return {
+      temporaryPassword,
+      user: { id: user.id, email: user.email, role: user.role },
+    };
+  }
+
+  private assertAccountUsable(status: UserStatus) {
+    if (status === UserStatus.SUSPENDED) {
+      throw new UnauthorizedException('Tu cuenta está suspendida');
+    }
+    if (status === UserStatus.BANNED) {
+      throw new UnauthorizedException('Tu cuenta está bloqueada');
+    }
   }
 
   private generateTemporaryPassword() {

@@ -15,6 +15,12 @@ enum UserRole {
   CUSTOMER
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
 enum OrderStatus {
   PENDING
   PAID
@@ -36,12 +42,13 @@ enum TicketTier {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
+  id           String     @id @default(uuid())
+  email        String     @unique
   passwordHash String
-  role         UserRole  @default(CUSTOMER)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  role         UserRole   @default(CUSTOMER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   deletedAt    DateTime?
 
   refreshTokens    RefreshToken[]
@@ -49,6 +56,9 @@ model User {
   orders           Order[]
   tickets          Ticket[]
   validatedTickets Ticket[]       @relation("TicketValidator")
+
+  @@index([status, createdAt])
+  @@index([role, createdAt])
 }
 
 model RefreshToken {
