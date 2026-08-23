@@ -78,4 +78,19 @@ export class S3Service {
       }),
     );
   }
+
+  async putTicketPdf(eventId: string, publicCode: string, buffer: Buffer) {
+    this.assertConfigured();
+    const key = `tickets/${eventId}/${publicCode}.pdf`;
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket!,
+        Key: key,
+        Body: buffer,
+        ContentType: 'application/pdf',
+        CacheControl: 'private, max-age=3600',
+      }),
+    );
+    return { key, url: this.buildPublicUrl(key) };
+  }
 }

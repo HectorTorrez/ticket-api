@@ -181,4 +181,19 @@ export class TicketsService {
       ticketType: ticket.ticketType,
     };
   }
+
+  async findTicketForPdf(publicCode: string) {
+    return this.prisma.ticket.findUnique({
+      where: { publicCode },
+      select: {
+        id: true,
+        publicCode: true,
+        pdfS3Key: true,
+        event: {
+          select: { id: true, title: true, startsAt: true, venue: true },
+        },
+        ticketType: { select: { name: true, tier: true } },
+      },
+    });
+  }
 }

@@ -23,6 +23,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { QueryMyTicketsDto } from './dto/query-my-tickets.dto';
+import { TicketPdfService } from './ticket-pdf.service';
 import { TicketsService } from './tickets.service';
 
 @ApiTags('tickets')
@@ -30,6 +31,7 @@ import { TicketsService } from './tickets.service';
 export class TicketsController {
   constructor(
     private readonly ticketsService: TicketsService,
+    private readonly ticketPdfService: TicketPdfService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -82,5 +84,23 @@ export class TicketsController {
     });
     res.setHeader('Content-Type', 'image/png');
     res.send(png);
+  }
+
+  @Public()
+  @Get('tickets/:publicCode/pdf')
+  @ApiOperation({
+    summary: 'Ticket PDF stored in S3 (generates on first request)',
+  })
+  @ApiProduces('application/pdf')
+  @Header('Cache-Control', 'private, max-age=3600')
+  async ticketPdf(
+    @Param('publicCode') publicCode: string,
+    @Res() res: Response,
+  ) {
+    const ticket = await this.ticketsService.findTicketForPdf(publicCode);
+    if (!ticket) throw new NotFoundException('Entrada no encontrada');
+
+    const pdfUrl = await this.ticketPdfService.resolvePdfUrl(ticket);
+    res.redirect(302, pdfUrl);
   }
 }

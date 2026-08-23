@@ -143,6 +143,7 @@ model OrderLine {
 model Ticket {
   id                String       @id @default(uuid())
   publicCode        String       @unique @default(uuid())
+  pdfS3Key          String?
   orderLineId       String
   userId            String
   eventId           String
