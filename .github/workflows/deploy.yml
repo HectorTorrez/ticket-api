@@ -55,6 +55,19 @@ jobs:
 
       - name: Refresh Auto Scaling Group
         run: |
+          echo "Waiting for any in-progress instance refresh to finish..."
+          for attempt in $(seq 1 40); do
+            IN_PROGRESS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name "$ASG_NAME" \
+              --query 'InstanceRefreshes[?Status==`InProgress`].InstanceRefreshId' \
+              --output text)
+            if [[ -z "$IN_PROGRESS" ]]; then
+              break
+            fi
+            echo "Refresh $IN_PROGRESS still running (attempt $attempt/40)..."
+            sleep 30
+          done
+
           aws autoscaling start-instance-refresh \
             --auto-scaling-group-name "$ASG_NAME" \
             --preferences '{"MinHealthyPercentage": 0, "InstanceWarmup": 300}'
