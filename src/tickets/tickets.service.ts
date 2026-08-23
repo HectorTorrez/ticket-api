@@ -14,7 +14,10 @@ const myTicketInclude = {
       title: true,
       slug: true,
       startsAt: true,
+      endsAt: true,
       venue: true,
+      published: true,
+      deletedAt: true,
     },
   },
   ticketType: { select: { tier: true, name: true } },
@@ -169,7 +172,15 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({
       where: { publicCode },
       include: {
-        event: { select: { title: true, startsAt: true, slug: true } },
+        event: {
+          select: {
+            title: true,
+            startsAt: true,
+            slug: true,
+            bannerUrl: true,
+            venue: true,
+          },
+        },
         ticketType: { select: { tier: true, name: true } },
       },
     });
