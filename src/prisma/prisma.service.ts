@@ -18,12 +18,10 @@ export class PrismaService
 
   constructor(@Inject(ConfigService) configService: ConfigService) {
     const connectionString = configService.getOrThrow<string>('DATABASE_URL');
+    const useRdsTls = connectionString.includes('rds.amazonaws.com');
     const pool = new Pool({
       connectionString,
-      ssl:
-        process.env.NODE_ENV === 'production'
-          ? { rejectUnauthorized: false }
-          : undefined,
+      ssl: useRdsTls ? { rejectUnauthorized: false } : undefined,
     });
     const adapter = new PrismaPg(pool);
     super({ adapter });

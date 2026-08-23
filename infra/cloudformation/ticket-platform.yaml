@@ -380,7 +380,7 @@ Resources:
             docker rm -f ticket-api || true
             docker run -d --name ticket-api --restart unless-stopped -p 3000:3000 \
               -e NODE_ENV=production \
-              -e DATABASE_URL="postgresql://ticketadmin:${DbPassword}@${TicketDatabase.Endpoint.Address}:5432/ticket_api?schema=public&sslmode=require" \
+              -e DATABASE_URL="postgresql://ticketadmin:${DbPassword}@${TicketDatabase.Endpoint.Address}:5432/ticket_api?schema=public" \
               -e JWT_ACCESS_SECRET="${JwtAccessSecret}" \
               -e JWT_REFRESH_SECRET="${JwtRefreshSecret}" \
               -e CORS_ORIGINS="${CorsOrigins}" \
