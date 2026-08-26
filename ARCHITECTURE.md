@@ -12,7 +12,7 @@ Reference document for deploying **ticket-frontend** (React app) and **ticket-ap
 | Frontend | React + Vite + TanStack Router | **S3** (+ **CloudFront** recommended) |
 | API | NestJS 11, Prisma, JWT, Socket.IO | **EC2** in **Auto Scaling Group** |
 | Database | PostgreSQL 16 | **RDS** |
-| Files | Event banners (ticket PDFs: planned) | **S3** (assets bucket) |
+| Files | Event banners + ticket PDFs | **S3** (assets bucket) |
 | TLS | Public certificate | **ACM** |
 | HTTP(S) entry | Load balancing and health checks | **Application Load Balancer** |
 | Observability | Logs and metrics | **CloudWatch** |
@@ -102,7 +102,7 @@ python scripts/arquitectura_boletaria.py
 | S3 Frontend | `ticket-frontend` (`pnpm build` → assets) | Catalog, checkout, admin dashboard, QR scanner |
 | EC2 API | `ticket-api` (Dockerfile, port **3000**) | REST `/api/v1`, Swagger `/docs`, WebSocket `/inventory` |
 | RDS | Prisma + `DATABASE_URL` | Users, events, orders, tickets, inventory |
-| S3 Assets | `src/aws/s3.service.ts` | Banners (`events/{eventId}/*`); PDFs: planned, not implemented |
+| S3 Assets | `src/aws/s3.service.ts` | Banners (`events/{eventId}/*`); ticket PDFs (`tickets/{eventId}/{publicCode}.pdf`) |
 | ALB health | `GET /api/v1/health`, `GET /api/v1/health/ready` | Liveness and readiness (DB connection) |
 | JWT / roles | `src/auth/*` | `CUSTOMER`, `ADMIN`; refresh tokens in DB |
 | Live inventory | `src/websocket/inventory.gateway.ts` | Socket.IO namespace `/inventory` |
@@ -150,7 +150,7 @@ python scripts/arquitectura_boletaria.py
 | **WebSocket multi-instance** | Not detailed | With 2+ EC2, enable **sticky sessions** on ALB target group **or** Redis adapter for Socket.IO. |
 | **Secrets** | Not shown | Use **SSM Parameter Store** or **Secrets Manager** for JWT and `DATABASE_URL`. |
 | **DNS** | Not shown | **Route 53**: `www` → CloudFront, `api` → ALB. |
-| **PDF in S3** | "Ticket PDF" bucket | Code generates **QR PNG on demand** (`GET /tickets/:code/qr`); PDF bucket is future work. |
+| **PDF in S3** | Implemented | `GET /tickets/:code/pdf` generates on first request, stores in S3, redirects; QR PNG still on demand via `GET /tickets/:code/qr`. Bucket policy needs public read on `tickets/*` (see `infra/assets-bucket-policy.json`). |
 | **S3 credentials on EC2** | Implicit | Prefer **IAM instance profile** over `AWS_ACCESS_KEY_ID` in production. |
 | **WAF / rate limiting** | Not shown | Consider **AWS WAF** on ALB/CloudFront for checkout/login abuse. |
 
@@ -247,6 +247,14 @@ User → CloudFront/S3 (app)
      → WebSocket inventory broadcast (ASG)
      → EC2: POST /api/v1/orders/:id/mock-pay
      → RDS (PAID, ticket issuance) + QR via API
+```
+
+### Ticket PDF download
+
+```
+User → CloudFront/S3 (app) → ALB → EC2: GET /api/v1/tickets/:code/pdf
+     → S3 (tickets/{eventId}/{code}.pdf on first request; pdfS3Key in RDS)
+     → 302 redirect to public S3 URL
 ```
 
 ### Gate validation (admin)

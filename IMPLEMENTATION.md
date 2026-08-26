@@ -54,7 +54,7 @@ These are **not blockers** for local development or a university MVP demo. Confi
 | **S3 banners** | Admin uploads event images | Create S3 bucket, set `S3_BUCKET` + `S3_PUBLIC_BASE_URL`, IAM permissions (see [§9](#9-optional-s3-banner-uploads)) |
 | **Real payments** | Accept real money | Replace `mock-pay` with a PSP (Stripe, etc.) and webhook routes |
 | **Email** | Send tickets by email | Add SES or SQS + Lambda (see [ARCHITECTURE.md](./ARCHITECTURE.md)) |
-| **Ticket PDFs in S3** | Store PDF files | Not implemented; QR PNG API works today |
+| **Ticket PDFs in S3** | Customer downloads ticket PDF | Implemented — set `S3_BUCKET` + public read on `tickets/*` (see `infra/assets-bucket-policy.json`) |
 | **Redis** | Multiple API instances + WebSockets | ElastiCache + Socket.IO Redis adapter, or ALB sticky sessions |
 | **AWS WAF** | Abuse protection | Attach WAF to ALB / CloudFront |
 | **Full CI/CD deploy** | Auto-deploy on push to `main` | Extend GitHub Actions with ECR, S3 sync, ASG deploy (see [§11](#11-future-cicd-to-aws-manual-today)) |
@@ -206,9 +206,9 @@ Do this once per environment (staging / production).
 | Bucket | Purpose |
 |--------|---------|
 | `ticket-frontend-{env}` | Static web assets (if using static hosting) |
-| `ticket-assets-{env}` | Event banners (`events/*` prefix) |
+| `ticket-assets-{env}` | Event banners (`events/*`) and ticket PDFs (`tickets/*`) |
 
-Enable block public access on both; use CloudFront OAC/OAI for frontend; public read on `events/*` for banners (or signed URLs).
+Enable block public access on both; use CloudFront OAC/OAI for frontend; public read on `events/*` and `tickets/*` for banners and PDF redirects (or signed URLs).
 
 ### Step 4 — ACM certificate
 
@@ -313,21 +313,24 @@ Requires switching Nitro to a **static** preset or prerendering all routes. Not 
 
 ---
 
-## 9. Optional: S3 banner uploads
+## 9. Optional: S3 asset uploads (banners + ticket PDFs)
 
-Banner upload is implemented but **disabled until env vars are set**.
+Banner upload and ticket PDF storage are implemented but **disabled until env vars are set**.
 
 ### AWS setup
 
 1. Create bucket `ticket-assets-{env}`.
-2. Bucket policy: public read on `events/*` (or serve via CloudFront).
+2. Bucket policy: public read on `events/*` and `tickets/*` (see `infra/assets-bucket-policy.json`).
 3. IAM policy for the EC2 instance profile:
 
    ```json
    {
      "Effect": "Allow",
      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
-     "Resource": "arn:aws:s3:::ticket-assets-prod/events/*"
+     "Resource": [
+       "arn:aws:s3:::ticket-assets-prod/events/*",
+       "arn:aws:s3:::ticket-assets-prod/tickets/*"
+     ]
    }
    ```
 

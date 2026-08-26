@@ -44,7 +44,7 @@ flowchart LR
 ### Buckets
 
 - **S3 (frontend):** static assets for the web app.
-- **S3 (API assets):** event banners — EC2 instance profile needs `s3:PutObject` / `GetObject` / `DeleteObject` on prefixes such as `events/*`. Ticket PDFs in S3 are **not implemented** yet.
+- **S3 (API assets):** event banners (`events/*`) and ticket PDFs (`tickets/*`). EC2 instance profile needs `s3:PutObject` / `GetObject` / `DeleteObject` on both prefixes. Apply `infra/assets-bucket-policy.json` so public `GetObject` works on `events/*` and `tickets/*` (PDF endpoint redirects to S3).
 
 ### Networking
 
@@ -59,7 +59,7 @@ flowchart LR
 |----------|--------|
 | `DATABASE_URL` | RDS endpoint |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | SSM Parameter Store or Secrets Manager (≥ 32 chars) |
-| `S3_BUCKET`, `S3_PUBLIC_BASE_URL` | Assets bucket (optional until admin banner uploads are needed) |
+| `S3_BUCKET`, `S3_PUBLIC_BASE_URL` | Assets bucket (required for banner uploads and ticket PDF downloads) |
 | `CORS_ORIGINS` | Frontend CloudFront/S3 origin(s) — not `*` in production |
 | `AWS_REGION` | Same region as S3/RDS; prefer IAM instance profile over access keys |
 
@@ -68,7 +68,7 @@ flowchart LR
 ## Load balancer and scaling
 
 - **Health checks:** `GET /api/v1/health` (liveness); optional `GET /api/v1/health/ready` (PostgreSQL).
-- **Socket.IO (`/inventory`):** with multiple EC2 instances, enable **sticky sessions** on the ALB target group **or** adopt a **Redis adapter** for Socket.IO. Until then, treat live inventory WebSockets as best-effort; REST remains the source of truth.
+- **Socket.IO (`/inventory`):** CloudFormation enables **sticky sessions** on the ALB target group. For larger scale, adopt a **Redis adapter** for Socket.IO instead.
 
 ---
 
@@ -113,7 +113,7 @@ Run against staging RDS before go-live.
 
 | Item | Status |
 |------|--------|
-| S3 banner bucket | Code ready — set env when needed |
+| S3 assets bucket | Code ready — set env + apply bucket policy (`events/*`, `tickets/*`) |
 | Real payment provider | Mock pay only today |
-| Email / PDF pipeline | Not implemented |
+| Email (SES) | Password reset logs link in dev; SES for production |
 | CI/CD deploy to AWS | CI validates build; deploy is manual (see IMPLEMENTATION.md) |

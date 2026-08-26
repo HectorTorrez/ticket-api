@@ -54,7 +54,7 @@ See [API.md](./API.md) for the full HTTP/WebSocket contract.
 | JWT secrets | **Required** | ≥ 32 characters each |
 | S3 banners | **Optional** | Code is ready; set `S3_BUCKET` + `S3_PUBLIC_BASE_URL` or uploads return 503 |
 | Mock payments | **MVP** | `POST /orders/:id/mock-pay` — replace with a real PSP later |
-| Ticket PDFs in S3 | **Future** | QR PNG is served on demand today |
+| Ticket PDFs in S3 | **Ready** | `GET /tickets/:code/pdf`; needs S3 bucket policy on `tickets/*` |
 | Email notifications | **Future** | Planned via SQS + Lambda |
 | Redis / Socket.IO scaling | **Future** | Use ALB sticky sessions or Redis adapter for multi-instance ASG |
 | CI/CD to AWS | **Future** | GitHub Actions workflow runs build/tests; deploy steps documented in [IMPLEMENTATION.md](./IMPLEMENTATION.md) |
