@@ -6,6 +6,8 @@
       "Effect": "Allow",
       "Action": [
         "ec2:Describe*",
+        "ec2:Get*",
+        "ec2:Search*",
         "elasticloadbalancing:Describe*",
         "autoscaling:Describe*",
         "application-autoscaling:Describe*"
@@ -17,7 +19,10 @@
       "Effect": "Allow",
       "Action": [
         "rds:Describe*",
-        "rds:List*"
+        "rds:List*",
+        "pi:Describe*",
+        "pi:Get*",
+        "pi:List*"
       ],
       "Resource": "*"
     },
@@ -34,10 +39,8 @@
       "Sid": "ArchitectureBucketsRead",
       "Effect": "Allow",
       "Action": [
-        "s3:ListBucket",
-        "s3:ListBucketVersions",
-        "s3:ListBucketMultipartUploads",
-        "s3:GetBucket*"
+        "s3:List*",
+        "s3:Get*"
       ],
       "Resource": [
         "arn:aws:s3:::tidetickets-frontend-180294216289",
@@ -51,14 +54,17 @@
       ]
     },
     {
-      "Sid": "CdnAndTlsRead",
+      "Sid": "CdnTlsAndDnsRead",
       "Effect": "Allow",
       "Action": [
         "cloudfront:List*",
         "cloudfront:Get*",
         "acm:List*",
         "acm:Describe*",
-        "acm:GetCertificate"
+        "acm:Get*",
+        "route53:List*",
+        "route53:Get*",
+        "route53:TestDNSAnswer"
       ],
       "Resource": "*"
     },
@@ -75,7 +81,9 @@
         "logs:List*",
         "logs:StartQuery",
         "logs:GetQueryResults",
-        "logs:StopQuery"
+        "logs:StopQuery",
+        "logs:StartLiveTail",
+        "logs:StopLiveTail"
       ],
       "Resource": "*"
     },
@@ -89,23 +97,7 @@
         "cloudtrail:LookupEvents",
         "access-analyzer:List*",
         "access-analyzer:Get*",
-        "access-analyzer:ValidatePolicy",
-        "budgets:ViewBudget",
-        "budgets:Describe*"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "CostExplorerRead",
-      "Effect": "Allow",
-      "Action": [
-        "ce:Describe*",
-        "ce:Get*",
-        "ce:List*",
-        "aws-portal:ViewBilling",
-        "account:GetAccountInformation",
-        "account:GetContactInformation",
-        "account:GetAlternateContact"
+        "access-analyzer:ValidatePolicy"
       ],
       "Resource": "*"
     },
@@ -115,12 +107,12 @@
       "Action": [
         "cloudformation:Describe*",
         "cloudformation:List*",
-        "cloudformation:GetTemplate",
-        "cloudformation:GetTemplateSummary",
+        "cloudformation:Get*",
         "cloudformation:EstimateTemplateCost",
         "ecr:Describe*",
         "ecr:List*",
-        "ecr:GetAuthorizationToken"
+        "ecr:Get*",
+        "ecr:BatchCheckLayerAvailability"
       ],
       "Resource": "*"
     },
@@ -128,12 +120,17 @@
       "Sid": "SsmMetadataRead",
       "Effect": "Allow",
       "Action": [
-        "ssm:DescribeParameters",
-        "ssm:DescribeInstanceInformation",
-        "ssm:DescribeInstanceAssociationsStatus",
-        "ssm:ListTagsForResource",
-        "ssm:ListDocuments",
-        "ssm:DescribeDocument"
+        "ssm:Describe*",
+        "ssm:List*",
+        "ssm:GetConnectionStatus",
+        "ssm:GetInventory",
+        "ssm:GetInventorySchema",
+        "ssm:GetPatchBaseline",
+        "ssm:GetPatchBaselineForPatchGroup",
+        "ssm:GetDefaultPatchBaseline",
+        "ssm:GetDocument",
+        "ssm:GetManifest",
+        "ssm:GetDeployablePatchSnapshotForInstance"
       ],
       "Resource": "*"
     },
@@ -141,12 +138,9 @@
       "Sid": "KmsMetadataRead",
       "Effect": "Allow",
       "Action": [
-        "kms:DescribeKey",
-        "kms:ListAliases",
-        "kms:ListKeys",
-        "kms:GetKeyRotationStatus",
-        "kms:GetKeyPolicy",
-        "kms:ListResourceTags"
+        "kms:Describe*",
+        "kms:List*",
+        "kms:Get*"
       ],
       "Resource": "*"
     },
@@ -154,33 +148,13 @@
       "Sid": "IamArchitectureRead",
       "Effect": "Allow",
       "Action": [
-        "iam:GetRole",
-        "iam:GetUser",
-        "iam:GetPolicy",
-        "iam:GetPolicyVersion",
-        "iam:GetRolePolicy",
-        "iam:GetUserPolicy",
-        "iam:GetInstanceProfile",
-        "iam:GetOpenIDConnectProvider",
-        "iam:ListRoles",
-        "iam:ListUsers",
-        "iam:ListPolicies",
-        "iam:ListPolicyVersions",
-        "iam:ListAttachedRolePolicies",
-        "iam:ListRolePolicies",
-        "iam:ListAttachedUserPolicies",
-        "iam:ListUserPolicies",
-        "iam:ListInstanceProfiles",
-        "iam:ListInstanceProfilesForRole",
-        "iam:ListOpenIDConnectProviders",
-        "iam:ListMFADevices",
-        "iam:ListRoleTags",
-        "iam:ListUserTags",
-        "iam:ListPolicyTags",
+        "iam:Get*",
+        "iam:List*",
+        "iam:GenerateServiceLastAccessedDetails",
+        "iam:GetServiceLastAccessedDetails",
+        "iam:GetServiceLastAccessedDetailsWithEntities",
         "iam:SimulatePrincipalPolicy",
-        "iam:GetAccountSummary",
-        "iam:ListAccountAliases",
-        "iam:GetAccountPasswordPolicy"
+        "iam:SimulateCustomPolicy"
       ],
       "Resource": "*"
     },
@@ -192,10 +166,8 @@
         "tag:GetTagKeys",
         "tag:GetTagValues",
         "resource-explorer-2:Search",
-        "resource-explorer-2:ListViews",
-        "resource-explorer-2:GetView",
-        "resource-explorer-2:ListIndexes",
-        "resource-explorer-2:GetIndex"
+        "resource-explorer-2:List*",
+        "resource-explorer-2:Get*"
       ],
       "Resource": "*"
     },
@@ -203,11 +175,9 @@
       "Sid": "ConsoleSelfService",
       "Effect": "Allow",
       "Action": [
-        "iam:GetLoginProfile",
         "iam:ChangePassword",
         "iam:CreateAccessKey",
         "iam:DeleteAccessKey",
-        "iam:ListAccessKeys",
         "iam:UpdateAccessKey",
         "iam:CreateVirtualMFADevice",
         "iam:EnableMFADevice",
@@ -229,6 +199,10 @@
         "ssm:GetParameters",
         "ssm:GetParametersByPath",
         "ssm:GetParameterHistory",
+        "ssm:StartSession",
+        "ssm:ResumeSession",
+        "ssm:TerminateSession",
+        "ssm:SendCommand",
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret",
         "rds:DownloadDBLogFilePortion",
@@ -236,6 +210,7 @@
         "ec2:TerminateInstances",
         "ec2:StartInstances",
         "ec2:StopInstances",
+        "ec2:RebootInstances",
         "ec2:GetPasswordData",
         "ec2:GetConsoleOutput",
         "ec2:GetConsoleScreenshot",
@@ -246,6 +221,7 @@
         "cloudformation:UpdateStack",
         "cloudformation:DeleteStack",
         "cloudformation:ExecuteChangeSet",
+        "cloudformation:CreateChangeSet",
         "autoscaling:SetDesiredCapacity",
         "autoscaling:UpdateAutoScalingGroup",
         "autoscaling:StartInstanceRefresh",
