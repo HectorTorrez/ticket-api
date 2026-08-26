@@ -30,20 +30,22 @@ export class InventoryGateway implements OnGatewayConnection {
   ) {}
 
   async handleConnection(client: Socket) {
+    const auth = client.handshake.auth as { token?: string };
+    const header = client.handshake.headers.authorization;
+    const token =
+      auth?.token ??
+      (typeof header === 'string' && header.startsWith('Bearer ')
+        ? header.slice(7)
+        : undefined);
+
+    const socketData = client.data as InventorySocketData;
+
+    if (!token) {
+      socketData.role = 'GUEST';
+      return;
+    }
+
     try {
-      const auth = client.handshake.auth as { token?: string };
-      const header = client.handshake.headers.authorization;
-      const token =
-        auth?.token ??
-        (typeof header === 'string' && header.startsWith('Bearer ')
-          ? header.slice(7)
-          : undefined);
-
-      if (!token) {
-        client.disconnect(true);
-        return;
-      }
-
       const payload = await this.jwtService.verifyAsync<AccessTokenPayload>(
         token,
         {
@@ -51,7 +53,6 @@ export class InventoryGateway implements OnGatewayConnection {
         },
       );
 
-      const socketData = client.data as InventorySocketData;
       socketData.userId = payload.sub;
       socketData.role = payload.role;
     } catch (err) {
