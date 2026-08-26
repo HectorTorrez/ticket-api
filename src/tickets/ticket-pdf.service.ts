@@ -95,11 +95,11 @@ export class TicketPdfService {
       );
       doc.text(`Código: ${ticket.publicCode}`);
       doc.moveDown(0.75);
-      doc.image(qrPng, (doc.page.width - 140) / 2, doc.y, {
-        fit: [140, 140],
-        align: 'center',
-      });
-      doc.moveDown(8);
+      const qrSize = 140;
+      const qrX = (doc.page.width - qrSize) / 2;
+      const qrY = doc.y;
+      doc.image(qrPng, qrX, qrY, { fit: [qrSize, qrSize] });
+      doc.y = qrY + qrSize + 10;
       doc.fontSize(8).fillColor('#555555').text(checkUrl, {
         align: 'center',
         link: checkUrl,
