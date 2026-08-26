@@ -26,6 +26,21 @@ export class QueryPublishedEventsDto extends PaginationQueryDto {
   @IsBoolean({ message: V.boolean })
   publishedOnly?: boolean = true;
 
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'When false (default), events whose endsAt is in the past are omitted unless from/to date filters are set.',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (value === true || value === 'true') return true;
+    if (value === false || value === 'false') return false;
+    return undefined;
+  })
+  @IsBoolean({ message: V.boolean })
+  includePast?: boolean = false;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsDateString({}, { message: V.dateString })

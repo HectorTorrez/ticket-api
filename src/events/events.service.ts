@@ -156,10 +156,14 @@ export class EventsService {
   async listPublished(query: QueryPublishedEventsDto) {
     const { skip, take } = paginationSkipTake(query.page, query.limit);
     const publishedOnly = query.publishedOnly !== false;
+    const includePast = query.includePast === true;
+    const hasDateFilter = Boolean(query.from || query.to);
+    const now = new Date();
 
     const where = {
       deletedAt: null,
       ...(publishedOnly ? { published: true } : {}),
+      ...(!includePast && !hasDateFilter ? { endsAt: { gt: now } } : {}),
       ...(query.from || query.to
         ? {
             startsAt: {
