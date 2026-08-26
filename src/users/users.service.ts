@@ -20,6 +20,24 @@ const adminUserSelect = {
   _count: { select: { orders: true } },
 } as const;
 
+const profileSelect = {
+  id: true,
+  email: true,
+  role: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type AdminUserRow = {
   id: string;
   email: string;
@@ -44,6 +62,37 @@ export class UsersService {
     return this.prisma.user.findFirst({
       where: { id, deletedAt: null },
     });
+  }
+
+  async getProfile(userId: string): Promise<UserProfile> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      select: profileSelect,
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return user;
+  }
+
+  async createPasswordResetToken(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ) {
+    await this.prisma.passwordResetToken.deleteMany({ where: { userId } });
+    return this.prisma.passwordResetToken.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+  }
+
+  async findValidPasswordResetToken(tokenHash: string) {
+    return this.prisma.passwordResetToken.findFirst({
+      where: { tokenHash, expiresAt: { gt: new Date() } },
+      include: { user: true },
+    });
+  }
+
+  async deletePasswordResetTokensForUser(userId: string) {
+    await this.prisma.passwordResetToken.deleteMany({ where: { userId } });
   }
 
   async createCustomer(email: string, passwordHash: string) {
