@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { OrderStatus } from '../../generated/prisma/enums';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { SortOrder } from '../../common/dto/sort-query.dto';
@@ -35,4 +41,12 @@ export class QueryAdminOrdersDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID(undefined, { message: V.uuid })
   userId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Customer email (partial match) or user UUID',
+  })
+  @IsOptional()
+  @IsString({ message: V.string })
+  @MaxLength(320)
+  q?: string;
 }

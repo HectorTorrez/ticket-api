@@ -23,6 +23,17 @@ import {
   restoreReservedInventory,
 } from './order-inventory.utils';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function adminOrdersCustomerFilter(query: QueryAdminOrdersDto) {
+  if (query.userId) return { userId: query.userId };
+  const q = query.q?.trim();
+  if (!q) return {};
+  if (UUID_RE.test(q)) return { userId: q };
+  return { user: { email: { contains: q, mode: 'insensitive' as const } } };
+}
+
 function mergeLines(lines: CreateOrderDto['lines']) {
   const map = new Map<string, number>();
   for (const l of lines) {
@@ -86,7 +97,7 @@ export class OrdersService {
     const { skip, take } = paginationSkipTake(query.page, query.limit);
     const where = {
       ...(query.status ? { status: query.status } : {}),
-      ...(query.userId ? { userId: query.userId } : {}),
+      ...adminOrdersCustomerFilter(query),
     };
 
     return Promise.all([
@@ -107,6 +118,18 @@ export class OrdersService {
       page: query.page ?? 1,
       limit: query.limit ?? 20,
     }));
+  }
+
+  async findForAdmin(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: { select: { id: true, email: true, role: true } },
+        lines: { include: { ticketType: true } },
+      },
+    });
+    if (!order) throw new NotFoundException('Pedido no encontrado');
+    return order;
   }
 
   async create(userId: string, dto: CreateOrderDto) {

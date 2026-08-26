@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../generated/prisma/enums';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -18,5 +18,11 @@ export class AdminOrdersController {
   @ApiOperation({ summary: 'List orders (admin)' })
   list(@Query() query: QueryAdminOrdersDto) {
     return this.ordersService.listForAdmin(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Order detail (admin)' })
+  detail(@Param('id') id: string) {
+    return this.ordersService.findForAdmin(id);
   }
 }
