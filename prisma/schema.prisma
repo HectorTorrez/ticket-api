@@ -51,14 +51,27 @@ model User {
   updatedAt    DateTime   @updatedAt
   deletedAt    DateTime?
 
-  refreshTokens    RefreshToken[]
-  eventsOrganized  Event[]        @relation("EventOrganizer")
-  orders           Order[]
-  tickets          Ticket[]
-  validatedTickets Ticket[]       @relation("TicketValidator")
+  refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
+  eventsOrganized      Event[]              @relation("EventOrganizer")
+  orders               Order[]
+  tickets              Ticket[]
+  validatedTickets     Ticket[]             @relation("TicketValidator")
 
   @@index([status, createdAt])
   @@index([role, createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model RefreshToken {
