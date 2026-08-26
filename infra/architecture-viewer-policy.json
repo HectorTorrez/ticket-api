@@ -2,32 +2,38 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "VpcAndComputeRead",
+      "Sid": "ArchitectureServicesFullAccess",
       "Effect": "Allow",
       "Action": [
-        "ec2:Describe*",
-        "ec2:Get*",
-        "ec2:Search*",
-        "elasticloadbalancing:Describe*",
-        "autoscaling:Describe*",
-        "application-autoscaling:Describe*"
+        "ec2:*",
+        "elasticloadbalancing:*",
+        "autoscaling:*",
+        "application-autoscaling:*",
+        "rds:*",
+        "pi:*",
+        "cloudfront:*",
+        "acm:*",
+        "route53:*",
+        "cloudwatch:*",
+        "logs:*",
+        "cloudtrail:*",
+        "cloudformation:*",
+        "ecr:*",
+        "ssm:*",
+        "ssmmessages:*",
+        "ec2messages:*",
+        "kms:*",
+        "iam:*",
+        "sts:GetCallerIdentity",
+        "sts:DecodeAuthorizationMessage",
+        "tag:*",
+        "resource-explorer-2:*",
+        "access-analyzer:*"
       ],
       "Resource": "*"
     },
     {
-      "Sid": "DataLayerRead",
-      "Effect": "Allow",
-      "Action": [
-        "rds:Describe*",
-        "rds:List*",
-        "pi:Describe*",
-        "pi:Get*",
-        "pi:List*"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "S3AccountLevelRead",
+      "Sid": "S3ListAccountBuckets",
       "Effect": "Allow",
       "Action": [
         "s3:ListAllMyBuckets",
@@ -36,12 +42,9 @@
       "Resource": "*"
     },
     {
-      "Sid": "ArchitectureBucketsRead",
+      "Sid": "S3TideTicketsBucketsFull",
       "Effect": "Allow",
-      "Action": [
-        "s3:List*",
-        "s3:Get*"
-      ],
+      "Action": "s3:*",
       "Resource": [
         "arn:aws:s3:::tidetickets-frontend-180294216289",
         "arn:aws:s3:::tidetickets-frontend-180294216289/*",
@@ -52,189 +55,6 @@
         "arn:aws:s3:::tidetickets-cloudtrail-180294216289",
         "arn:aws:s3:::tidetickets-cloudtrail-180294216289/*"
       ]
-    },
-    {
-      "Sid": "CdnTlsAndDnsRead",
-      "Effect": "Allow",
-      "Action": [
-        "cloudfront:List*",
-        "cloudfront:Get*",
-        "acm:List*",
-        "acm:Describe*",
-        "acm:Get*",
-        "route53:List*",
-        "route53:Get*",
-        "route53:TestDNSAnswer"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ObservabilityRead",
-      "Effect": "Allow",
-      "Action": [
-        "cloudwatch:Describe*",
-        "cloudwatch:Get*",
-        "cloudwatch:List*",
-        "logs:Describe*",
-        "logs:Get*",
-        "logs:FilterLogEvents",
-        "logs:List*",
-        "logs:StartQuery",
-        "logs:GetQueryResults",
-        "logs:StopQuery",
-        "logs:StartLiveTail",
-        "logs:StopLiveTail"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "GovernanceAndAuditRead",
-      "Effect": "Allow",
-      "Action": [
-        "cloudtrail:Describe*",
-        "cloudtrail:Get*",
-        "cloudtrail:List*",
-        "cloudtrail:LookupEvents",
-        "access-analyzer:List*",
-        "access-analyzer:Get*",
-        "access-analyzer:ValidatePolicy"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "IaCAndRegistryRead",
-      "Effect": "Allow",
-      "Action": [
-        "cloudformation:Describe*",
-        "cloudformation:List*",
-        "cloudformation:Get*",
-        "cloudformation:EstimateTemplateCost",
-        "ecr:Describe*",
-        "ecr:List*",
-        "ecr:Get*",
-        "ecr:BatchCheckLayerAvailability"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "SsmMetadataRead",
-      "Effect": "Allow",
-      "Action": [
-        "ssm:Describe*",
-        "ssm:List*",
-        "ssm:GetConnectionStatus",
-        "ssm:GetInventory",
-        "ssm:GetInventorySchema",
-        "ssm:GetPatchBaseline",
-        "ssm:GetPatchBaselineForPatchGroup",
-        "ssm:GetDefaultPatchBaseline",
-        "ssm:GetDocument",
-        "ssm:GetManifest",
-        "ssm:GetDeployablePatchSnapshotForInstance"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "KmsMetadataRead",
-      "Effect": "Allow",
-      "Action": [
-        "kms:Describe*",
-        "kms:List*",
-        "kms:Get*"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "IamArchitectureRead",
-      "Effect": "Allow",
-      "Action": [
-        "iam:Get*",
-        "iam:List*",
-        "iam:GenerateServiceLastAccessedDetails",
-        "iam:GetServiceLastAccessedDetails",
-        "iam:GetServiceLastAccessedDetailsWithEntities",
-        "iam:SimulatePrincipalPolicy",
-        "iam:SimulateCustomPolicy"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ResourceExplorerAndTags",
-      "Effect": "Allow",
-      "Action": [
-        "tag:GetResources",
-        "tag:GetTagKeys",
-        "tag:GetTagValues",
-        "resource-explorer-2:Search",
-        "resource-explorer-2:List*",
-        "resource-explorer-2:Get*"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ConsoleSelfService",
-      "Effect": "Allow",
-      "Action": [
-        "iam:ChangePassword",
-        "iam:CreateAccessKey",
-        "iam:DeleteAccessKey",
-        "iam:UpdateAccessKey",
-        "iam:CreateVirtualMFADevice",
-        "iam:EnableMFADevice",
-        "iam:ResyncMFADevice",
-        "iam:DeactivateMFADevice",
-        "iam:DeleteVirtualMFADevice",
-        "sts:GetCallerIdentity"
-      ],
-      "Resource": [
-        "arn:aws:iam::180294216289:user/architecture-viewer",
-        "arn:aws:iam::180294216289:mfa/architecture-viewer"
-      ]
-    },
-    {
-      "Sid": "DenySecretsAndMutations",
-      "Effect": "Deny",
-      "Action": [
-        "ssm:GetParameter",
-        "ssm:GetParameters",
-        "ssm:GetParametersByPath",
-        "ssm:GetParameterHistory",
-        "ssm:StartSession",
-        "ssm:ResumeSession",
-        "ssm:TerminateSession",
-        "ssm:SendCommand",
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret",
-        "rds:DownloadDBLogFilePortion",
-        "ec2:RunInstances",
-        "ec2:TerminateInstances",
-        "ec2:StartInstances",
-        "ec2:StopInstances",
-        "ec2:RebootInstances",
-        "ec2:GetPasswordData",
-        "ec2:GetConsoleOutput",
-        "ec2:GetConsoleScreenshot",
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:DeleteObject",
-        "cloudformation:CreateStack",
-        "cloudformation:UpdateStack",
-        "cloudformation:DeleteStack",
-        "cloudformation:ExecuteChangeSet",
-        "cloudformation:CreateChangeSet",
-        "autoscaling:SetDesiredCapacity",
-        "autoscaling:UpdateAutoScalingGroup",
-        "autoscaling:StartInstanceRefresh",
-        "autoscaling:CancelInstanceRefresh",
-        "cloudtrail:StopLogging",
-        "cloudtrail:DeleteTrail",
-        "cloudtrail:PutEventSelectors",
-        "cloudtrail:UpdateTrail",
-        "kms:Decrypt",
-        "kms:Encrypt",
-        "kms:GenerateDataKey*"
-      ],
-      "Resource": "*"
     }
   ]
 }
