@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -14,8 +15,13 @@ import { parseDurationMs } from '../common/duration';
 import { UserStatus } from '../generated/prisma/enums';
 import type { AccessTokenPayload } from './strategies/jwt.strategy';
 
+const FORGOT_PASSWORD_MESSAGE =
+  'Si existe una cuenta con ese correo, enviaremos instrucciones para restablecer la contraseña.';
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly prisma: PrismaService,
@@ -64,6 +70,74 @@ export class AuthService {
 
     const passwordHash = await argon2.hash(newPassword);
     await this.usersService.updatePasswordHash(user.id, passwordHash);
+    await this.usersService.revokeAllRefreshTokens(user.id);
+
+    return this.issueTokens(user.id, user.email, user.role);
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user || user.deletedAt) {
+      return { message: FORGOT_PASSWORD_MESSAGE };
+    }
+
+    try {
+      this.assertAccountUsable(user.status);
+    } catch {
+      return { message: FORGOT_PASSWORD_MESSAGE };
+    }
+
+    const rawToken = randomBytes(32).toString('hex');
+    const ttlMinutes = this.configService.get<number>(
+      'PASSWORD_RESET_TTL_MINUTES',
+      60,
+    );
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60_000);
+
+    await this.usersService.createPasswordResetToken(
+      user.id,
+      this.hashToken(rawToken),
+      expiresAt,
+    );
+
+    const frontendBase = this.configService
+      .getOrThrow<string>('FRONTEND_BASE_URL')
+      .replace(/\/$/, '');
+    const resetUrl = `${frontendBase}/reset-password?token=${rawToken}`;
+
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+    if (nodeEnv !== 'production') {
+      this.logger.log(`Password reset link for ${user.email}: ${resetUrl}`);
+      return { message: FORGOT_PASSWORD_MESSAGE, resetUrl };
+    }
+
+    // Production: integrate email/SES here when available.
+    this.logger.log(`Password reset requested for ${user.email}`);
+    return { message: FORGOT_PASSWORD_MESSAGE };
+  }
+
+  async resetPasswordWithToken(token: string, newPassword: string) {
+    const stored = await this.usersService.findValidPasswordResetToken(
+      this.hashToken(token),
+    );
+    if (!stored) {
+      throw new UnauthorizedException(
+        'El enlace de restablecimiento no es válido o ha expirado',
+      );
+    }
+
+    const user = stored.user;
+    if (user.deletedAt) {
+      throw new UnauthorizedException(
+        'El enlace de restablecimiento no es válido o ha expirado',
+      );
+    }
+
+    this.assertAccountUsable(user.status);
+
+    const passwordHash = await argon2.hash(newPassword);
+    await this.usersService.updatePasswordHash(user.id, passwordHash);
+    await this.usersService.deletePasswordResetTokensForUser(user.id);
     await this.usersService.revokeAllRefreshTokens(user.id);
 
     return this.issueTokens(user.id, user.email, user.role);
