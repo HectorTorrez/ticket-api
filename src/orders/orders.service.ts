@@ -22,6 +22,7 @@ import {
   loadOrderInventorySnapshotTx,
   restoreReservedInventory,
 } from './order-inventory.utils';
+import { isEventEnded } from '../events/event-ended.util';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -177,6 +178,9 @@ export class OrdersService {
           }
           if (!tt.event.published) {
             throw new BadRequestException('El evento no está a la venta');
+          }
+          if (isEventEnded(tt.event.endsAt, now)) {
+            throw new BadRequestException('El evento ya finalizó');
           }
           if (tt.saleStartsAt && now < tt.saleStartsAt) {
             throw new BadRequestException(
