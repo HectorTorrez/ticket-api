@@ -13,6 +13,23 @@ type TxMock = {
   };
 };
 
+const ticketRow = {
+  id: 't1',
+  status: TicketStatus.ACTIVE,
+  publicCode: 'CODE1234',
+  event: { title: 'Concierto en la playa' },
+  ticketType: { name: 'General', tier: 'GENERAL' },
+  user: { email: 'cliente@ejemplo.com' },
+};
+
+const ticketContext = {
+  publicCode: 'CODE1234',
+  eventTitle: 'Concierto en la playa',
+  ticketTypeName: 'General',
+  tier: 'GENERAL',
+  holderEmail: 'cliente@ejemplo.com',
+};
+
 function buildService(tx: TxMock) {
   const prisma = {
     $transaction: jest.fn(async (fn: (client: TxMock) => Promise<unknown>) =>
@@ -46,7 +63,7 @@ describe('QrService.validate', () => {
       $queryRawUnsafe: jest.fn().mockResolvedValue([{ id: 't1' }]),
       ticket: {
         findUniqueOrThrow: jest.fn().mockResolvedValue({
-          id: 't1',
+          ...ticketRow,
           status: TicketStatus.USED,
         }),
         update: jest.fn(),
@@ -56,6 +73,7 @@ describe('QrService.validate', () => {
 
     await expect(service.validate(adminId, 'CODE1234')).resolves.toEqual({
       result: 'ALREADY_USED',
+      ticket: ticketContext,
     });
     expect(tx.ticket.update).not.toHaveBeenCalled();
   });
@@ -65,7 +83,7 @@ describe('QrService.validate', () => {
       $queryRawUnsafe: jest.fn().mockResolvedValue([{ id: 't1' }]),
       ticket: {
         findUniqueOrThrow: jest.fn().mockResolvedValue({
-          id: 't1',
+          ...ticketRow,
           status: TicketStatus.CANCELLED,
         }),
         update: jest.fn(),
@@ -75,17 +93,15 @@ describe('QrService.validate', () => {
 
     await expect(service.validate(adminId, 'CODE1234')).resolves.toEqual({
       result: 'INVALID',
+      ticket: ticketContext,
     });
   });
 
-  it('marks ACTIVE ticket as USED and returns VALID', async () => {
+  it('marks ACTIVE ticket as USED and returns VALID with context', async () => {
     const tx: TxMock = {
       $queryRawUnsafe: jest.fn().mockResolvedValue([{ id: 't1' }]),
       ticket: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
-          id: 't1',
-          status: TicketStatus.ACTIVE,
-        }),
+        findUniqueOrThrow: jest.fn().mockResolvedValue(ticketRow),
         update: jest.fn().mockResolvedValue({}),
       },
     };
@@ -93,6 +109,7 @@ describe('QrService.validate', () => {
 
     await expect(service.validate(adminId, 'ABC12345')).resolves.toEqual({
       result: 'VALID',
+      ticket: ticketContext,
     });
     expect(tx.ticket.update).toHaveBeenCalledWith(
       expect.objectContaining({

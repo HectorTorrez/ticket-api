@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { TicketStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import type { QrTicketContext, QrValidateResponse } from './qr-validate.types';
 
-export type QrValidationResult = 'VALID' | 'INVALID' | 'ALREADY_USED';
+type TicketForValidate = {
+  id: string;
+  status: TicketStatus;
+  publicCode: string;
+  event: { title: string };
+  ticketType: { name: string; tier: string };
+  user: { email: string };
+};
 
 @Injectable()
 export class QrService {
@@ -11,7 +19,7 @@ export class QrService {
   async validate(
     adminUserId: string,
     code: string,
-  ): Promise<{ result: QrValidationResult }> {
+  ): Promise<QrValidateResponse> {
     const publicCode = this.normalizeTicketCode(code);
     return this.prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRawUnsafe<Array<{ id: string }>>(
@@ -25,14 +33,21 @@ export class QrService {
 
       const ticket = await tx.ticket.findUniqueOrThrow({
         where: { id: ticketId },
+        include: {
+          event: { select: { title: true } },
+          ticketType: { select: { name: true, tier: true } },
+          user: { select: { email: true } },
+        },
       });
 
+      const context = this.toTicketContext(ticket);
+
       if (ticket.status === TicketStatus.USED) {
-        return { result: 'ALREADY_USED' };
+        return { result: 'ALREADY_USED', ticket: context };
       }
 
       if (ticket.status === TicketStatus.CANCELLED) {
-        return { result: 'INVALID' };
+        return { result: 'INVALID', ticket: context };
       }
 
       await tx.ticket.update({
@@ -44,8 +59,18 @@ export class QrService {
         },
       });
 
-      return { result: 'VALID' };
+      return { result: 'VALID', ticket: context };
     });
+  }
+
+  private toTicketContext(ticket: TicketForValidate): QrTicketContext {
+    return {
+      publicCode: ticket.publicCode,
+      eventTitle: ticket.event.title,
+      ticketTypeName: ticket.ticketType.name,
+      tier: ticket.ticketType.tier,
+      holderEmail: ticket.user.email,
+    };
   }
 
   /** Accepts raw publicCode or a /check/:code URL from QR scans. */
